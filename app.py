@@ -4,7 +4,7 @@ from authlib.common.security import generate_token
 from pymongo import MongoClient
 from bson import ObjectId
 import os
-from datetime import datetime  # Fixed import for datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -13,12 +13,12 @@ client = MongoClient("mongodb://root:rootpassword@mongo:27017/mydatabase?authSou
 db = client.mydatabase
 comments = db.comments
 
-try:
-    result = comments.insert_one({"test": "data"})
-    print("hello")
-    print("Insert result:", result.inserted_id)
-except Exception as e:
-    print("Insert failed:", e)
+# try:
+#     result = comments.insert_one({"test": "data"})
+#     print("hello")
+#     print("Insert result:", result.inserted_id)
+# except Exception as e:
+#     print("Insert failed:", e)
 
 oauth = OAuth(app)
 
@@ -62,7 +62,7 @@ def authorize():
     session['user'] = user_info
     return redirect('/')
 
-
+parent_id = None;
 @app.route("/post_comments", methods=['POST'])
 def post_comment():
     data = request.json
@@ -76,9 +76,10 @@ def post_comment():
         "article_id": data['article_id'],
         "text": data['text'],
         "username": username,
-        "timestamp": datetime.utcnow()
+        "parent_id": data['parent_id'],
+        "timestamp": (datetime.utcnow() - timedelta(hours=7))
     }
-    
+
     try:
         result = comments.insert_one(comment)
         print(f"Comment inserted with ID: {result.inserted_id}")
@@ -93,14 +94,10 @@ def get_comments(article_id):
     comments_list = []
     try:
         for comment in comments.find({"article_id": article_id}):
-            comment["_id"] = str(comment["_id"])  # Convert ObjectId to string
-            
-            # Handle datetime serialization
+            comment["_id"] = str(comment["_id"]) 
             if isinstance(comment.get("timestamp"), datetime):
                 comment["timestamp"] = comment["timestamp"].isoformat()
-                
             comments_list.append(comment)
-        
         print(f"Found {len(comments_list)} comments")
         return jsonify(comments_list)
     except Exception as e:

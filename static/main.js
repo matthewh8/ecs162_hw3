@@ -126,19 +126,17 @@ document.getElementById('comment-form').addEventListener('submit', async functio
   
   const articleId = document.getElementById('article-id').value;
   const commentText = document.getElementById('comment-input').value;
-  
-  // In a real app, you'd get the username from the session
-  // For now, using a placeholder
-  const username = "user"; // Should be replaced with actual logged-in user
+  const username = "user"; 
   
   const data = {
     article_id: articleId,
     text: commentText,
-    username: username
+    username: username,
+    parent_id: null
   };
   
   console.log("Submitting comment data:", data);
-  
+
   const response = await fetch('/post_comments', {
     method: 'POST',
     headers: {
@@ -146,7 +144,6 @@ document.getElementById('comment-form').addEventListener('submit', async functio
     },
     body: JSON.stringify(data)
   });
-  
   const result = await response.json();
   document.getElementById('comment-input').value = ''; // Clear input field
   loadComments(articleId);
@@ -155,18 +152,14 @@ document.getElementById('comment-form').addEventListener('submit', async functio
 async function loadComments(articleId) {
   console.log("Loading comments for article:", articleId);
   try {
-    // Don't extract UUID part - send the full articleId to the backend
-    // The backend should be set up to match the exact article_id format in the database
     let response = await fetch(`/get_comments/${encodeURIComponent(articleId)}`);
     let comments = await response.json();
     console.log("Fetched comments:", comments);
-    
-    // Make sure comments is actually an array
+
     if (!Array.isArray(comments)) {
       console.error("Unexpected comments format:", comments);
       comments = [];
     }
-    
     document.getElementById('comments-list').innerHTML = renderComments(comments);
   } catch (error) {
     console.error("Error loading comments:", error);
@@ -179,7 +172,7 @@ function renderComments(comments) {
   if (!comments || comments.length === 0) {
     return "<p>No comments yet. Be the first to comment!</p>";
   }
-  
+
   return comments.map(comment => 
     `<div class="comment">
       <div class="comment-header">
@@ -187,9 +180,59 @@ function renderComments(comments) {
         <span class="timestamp">${new Date(comment.timestamp).toLocaleString()}</span>
       </div>
       <div class="comment-text">${comment.text}</div>
+      <button class="reply-btn" data-id="${comment._id}">Reply</button>
     </div>`
   ).join('');
 }
+
+document.addEventListener('click', function(event) {
+  if (event.target.classList.contains('reply-btn')) {
+    // console.log(event.target.parentNode)
+    const existingForm = document.querySelector('.reply-form');
+    if (existingForm) existingForm.remove();
+    const form = document.createElement('form');
+    form.className = 'reply-form';
+    form.innerHTML = `
+      <textarea name="reply" required></textarea>
+      <button type="submit">Post Reply</button>
+    `;
+    console.log(event.target.dataset.id); // event.target.dataset.id gets correct parent comment id
+    form.dataset.parentId = event.target.dataset.id;
+
+    event.target.parentNode.appendChild(form);
+  }
+});
+
+document.addEventListener('submit', async function(e) {
+  if (e.target.classList.contains('reply-form')) {
+    e.preventDefault();
+    const replyText = e.target.querySelector('textarea').value;
+    console.log(replyText);
+    const parentId = e.target.dataset.parentId;
+    console.log(parentId);
+    const articleId = document.getElementById('article-id').value;
+    console.log(articleId);
+    const username = "user";
+
+    const data = {
+      article_id: articleId,
+      text: replyText,
+      username: username,
+      parent_id: parentId
+    };
+
+    const response = await fetch('/post_comments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    loadComments(articleId);
+  }
+});
+
 
 // Keeping the original commented-out form event listener
 // document.getElementById('comment-form').addEventListener('submit', async function(event) {
