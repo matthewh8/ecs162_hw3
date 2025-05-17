@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for, session, jsonify, request
+from flask import Flask, redirect, url_for, session, jsonify, request, send_from_directory
 from authlib.integrations.flask_client import OAuth
 from authlib.common.security import generate_token
 from pymongo import MongoClient
@@ -33,7 +33,7 @@ def home():
     user = session.get('user')
     if user:
         return f"<h2>Logged in as {user['email']}</h2><a href='/logout'>Logout</a>"
-    return '<a href="/login">Login with Dex</a>'
+    return send_from_directory("templates", "index.html")
 
 @app.route('/login')
 def login():
