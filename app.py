@@ -10,6 +10,7 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 
+
 oauth = OAuth(app)
 
 nonce = generate_token()
@@ -27,6 +28,10 @@ oauth.register(
     device_authorization_endpoint="http://dex:5556/device/code",
     client_kwargs={'scope': 'openid email profile'}
 )
+
+@app.route("/api/key")
+def get_key():
+    return jsonify({"apiKey": os.getenv("NYT_API_KEY")})
 
 @app.route('/')
 def home():
@@ -52,6 +57,12 @@ def authorize():
 client = MongoClient("mongodb://localhost:27017")
 db = client.flask_db
 commentsdb = db['comments']
+try:
+    client.admin.command('ping')  # Verify connection first
+    db.comments.insert_one({"test": "value"})  # Now safe to insert
+    print("Connected to MongoDB and initialized!")
+except Exception as e:
+    print("MongoDB connection failed:", e)
 
 @app.route("/post_comments", methods = ['POST'])
 def post_comment():
