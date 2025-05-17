@@ -1,7 +1,10 @@
-from flask import Flask, jsonify, redirect, render_template, session
+from flask import Flask, redirect, url_for, session, jsonify, request
 from authlib.integrations.flask_client import OAuth
 from authlib.common.security import generate_token
+from pymongo import MongoClient
+from bson import ObjectId
 import os
+import datetime
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -32,10 +35,6 @@ def home():
         return f"<h2>Logged in as {user['email']}</h2><a href='/logout'>Logout</a>"
     return '<a href="/login">Login with Dex</a>'
 
-@app.route('/api/key')
-def get_key():
-    return jsonify({'apiKey': os.getenv('NYT_API_KEY')})
-
 @app.route('/login')
 def login():
     session['nonce'] = nonce
@@ -50,6 +49,33 @@ def authorize():
     user_info = oauth.flask_app.parse_id_token(token, nonce=nonce)  # or use .get('userinfo').json()
     session['user'] = user_info
     return redirect('/')
+
+client = MongoClient("mongodb://localhost:27017")
+db = client.flask_db
+commentsdb = db['comments']
+
+@app.route("/post_comments", methods = ['POST'])
+def post_comment():
+    data = request.json
+    if 'user_id' in session:
+        comment = {
+            "article_id": data['article_id'],
+            "text": data['text'],
+            "username": data['username'],
+            "timestamp": datetime.utcnow(),
+        }
+        db.comments.insert_one(comment)
+    return jsonify({"status":"success"})
+
+@app.route("/get_comments/<article_id>", methods = ['GET'])
+def get_comments(article_id):
+    comments = list(commentsdb.find({"article_id": article_id}))
+    return jsonify(comments)
+
+@app.route("/delete_comment/<comment_id>", methods=['DELETE'])
+def delete_comment(comment_id):
+    db.comments.delete_one({'_id': ObjectId(comment_id)})
+    return jsonify(success=True)
 
 @app.route('/logout')
 def logout():

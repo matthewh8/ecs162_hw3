@@ -1,18 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The New York Times</title>
-    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="static/styles.css">
+    <script type="module" src="static/main.js" defer></script>
 </head>
-<script src="../static/main.js"></script>
 <body>
-    {% if user %}
-        <h2>Logged in as {{ user['email'] }}</h2>
-        <a href="/logout">Logout</a>
-    {% else %}
-        <a href="/login">Login with Dex</a>
-    {% endif %}
-</body>
+    <header>
+        <!-- top bar -->
+        <div id="title-bar">
+            <div id="date-container">
+                <div id="current-date"></div>
+                <div>
+                    Today's Paper
+                </div>
+            </div>
+            <div id="logo">
+                <a href="index.html">
+                    <img src="static/assets/Logo.png" alt="The New York Times Logo">
+                </a>
+            </div>
+            <div>
+                <button id="login-button">Login</button>
+            </div>
+        </div>
+        <!-- second bar -->
+        <nav>
+            <!-- for spacing -->
+            <div class="side-tab">
 
-<footer>
-</footer>
+            </div>
+            <div class="tab">
+                U.S.
+            </div>
+            <div class="tab">
+                World
+            </div>
+            <div class="tab">
+                Business
+            </div>
+            <div class="tab">
+                Arts
+            </div>
+            <div class="tab">
+                Lifestyle
+            </div>
+            <div class="tab">
+                Opinion
+            </div>
+            <div class="tab">
+                Audio
+            </div>
+            <div class="tab">
+                Games
+            </div>
+            <div class="tab">
+                Cooking
+            </div>
+            <div class="tab">
+                Wirecutter
+            </div>
+            <div class="tab">
+                The Athletic
+            </div>
+            <!-- for spacing -->
+            <div class="side-tab">
+
+            </div>
+        </nav>
+    </header>
+    <main class="container">
+        <div id="comments-sidebar">
+            <button id="close-sidebar">&times;</button>
+            <h3>Comments</h3>
+            <input type="hidden" id="article-id" name="article_id">
+            <div id="comments-list"></div>
+            <form id="comment-form">
+              <textarea id="comment-input" placeholder = "leave a comment!" required></textarea>
+              <button type="submit">post</button>
+            </form>
+          </div>
+        <section class="left-column">
+        </section>
+        <section class="main-column">
+        </section>
+        <section class="right-column">
+        </section>
+    </main>
+    <div class="scroll-sentinel"></div>
+    <!-- <div id="comments-section">
+        <h2>Comments</h2>
+        <div id="comments-list"></div>
+        <form id="comment-form">
+          <textarea id="comment-input" placeholder="leave a comment!" required></textarea>
+          <button type="submit">submit</button>
+        </form>
+      </div> -->
+    <footer>
+        <p>&copy; 2025 The New York Times</p>
+    </footer>
+</body>
+</html>
