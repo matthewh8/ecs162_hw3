@@ -155,14 +155,18 @@ document.getElementById('comment-form').addEventListener('submit', async functio
 async function loadComments(articleId) {
   console.log("Loading comments for article:", articleId);
   try {
-    // Extract just the UUID part if the articleId contains "nyt://article/"
-    const cleanArticleId = articleId.includes("nyt://article/") 
-      ? articleId.split("nyt://article/")[1] 
-      : articleId;
-    
-    let response = await fetch(`/get_comments/${encodeURIComponent(cleanArticleId)}`);
+    // Don't extract UUID part - send the full articleId to the backend
+    // The backend should be set up to match the exact article_id format in the database
+    let response = await fetch(`/get_comments/${encodeURIComponent(articleId)}`);
     let comments = await response.json();
     console.log("Fetched comments:", comments);
+    
+    // Make sure comments is actually an array
+    if (!Array.isArray(comments)) {
+      console.error("Unexpected comments format:", comments);
+      comments = [];
+    }
+    
     document.getElementById('comments-list').innerHTML = renderComments(comments);
   } catch (error) {
     console.error("Error loading comments:", error);
@@ -180,7 +184,7 @@ function renderComments(comments) {
     `<div class="comment">
       <div class="comment-header">
         <strong>${comment.username || 'Anonymous'}</strong> 
-        <span class="timestamp">${comment.date || new Date(comment.timestamp).toLocaleString()}</span>
+        <span class="timestamp">${new Date(comment.timestamp).toLocaleString()}</span>
       </div>
       <div class="comment-text">${comment.text}</div>
     </div>`
