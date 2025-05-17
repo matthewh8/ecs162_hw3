@@ -28,7 +28,7 @@ services:
       - .env.dev
     volumes:
       - mongo_data:/data/db
-        # -./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
 
   dex:
     build:

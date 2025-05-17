@@ -15,7 +15,6 @@ oauth = OAuth(app)
 
 nonce = generate_token()
 
-
 oauth.register(
     name=os.getenv('OIDC_CLIENT_NAME'),
     client_id=os.getenv('OIDC_CLIENT_ID'),
@@ -54,15 +53,7 @@ def authorize():
     session['user'] = user_info
     return redirect('/')
 
-client = MongoClient("mongodb://localhost:27017")
-db = client.flask_db
-commentsdb = db['comments']
-try:
-    client.admin.command('ping')  # Verify connection first
-    db.comments.insert_one({"test": "value"})  # Now safe to insert
-    print("Connected to MongoDB and initialized!")
-except Exception as e:
-    print("MongoDB connection failed:", e)
+
 
 @app.route("/post_comments", methods = ['POST'])
 def post_comment():
@@ -82,10 +73,10 @@ def get_comments(article_id):
     comments = list(commentsdb.find({"article_id": article_id}))
     return jsonify(comments)
 
-@app.route("/delete_comment/<comment_id>", methods=['DELETE'])
-def delete_comment(comment_id):
-    db.comments.delete_one({'_id': ObjectId(comment_id)})
-    return jsonify(success=True)
+# @app.route("/delete_comment/<comment_id>", methods=['DELETE'])
+# def delete_comment(comment_id):
+#     db.comments.delete_one({'_id': ObjectId(comment_id)})
+#     return jsonify(success=True)
 
 @app.route('/logout')
 def logout():

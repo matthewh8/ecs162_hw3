@@ -8,3 +8,11 @@ db.users.find().count() === 0 && db.users.insertOne({
     username: 'alice',
     userID: '123'
 });
+
+db.createCollection('comments');
+db.comments.find().count() === 0 && db.comments.insertOne({
+    email: 'alice@example.com',
+    hash: '$2a$10$CwTycUXWue0Thq9StjUM0uJ8DPLKXt1FYlwYpQW2G3cAwjKoh2WZK',  // hashed password
+    username: 'alice',
+    userID: '123'
+});
