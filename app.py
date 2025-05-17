@@ -3,17 +3,18 @@ from authlib.integrations.flask_client import OAuth
 from authlib.common.security import generate_token
 from pymongo import MongoClient
 from bson import ObjectId
+from dotenv import load_dotenv
 import os
 import datetime
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+load_dotenv()
 
 oauth = OAuth(app)
 
 nonce = generate_token()
-
 
 oauth.register(
     name=os.getenv('OIDC_CLIENT_NAME'),
@@ -33,6 +34,9 @@ def home():
     # user = session.get('user')
     return send_from_directory("templates", "index.html")
 
+@app.route("/api/key")
+def get_key():
+    return jsonify({"apiKey": os.getenv("NYT_API_KEY")})
 
 @app.route('/login')
 def login():

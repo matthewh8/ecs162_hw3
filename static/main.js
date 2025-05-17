@@ -25,6 +25,7 @@ let page = 0;
 
 export async function fetchArticles(){ // queries NYT API for 6 articles, then calls display function
     const apiKey = await fetchApiKey();
+    console.log(apiKey);
     const query = 'sacramento'; // we chose just sacramento because davis didn't have anything
     let articles = [];
     while(articles.length < 6){
