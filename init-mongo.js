@@ -11,8 +11,8 @@ db.users.find().count() === 0 && db.users.insertOne({
 
 db.createCollection('comments');
 db.comments.find().count() === 0 && db.comments.insertOne({
-    email: 'alice@example.com',
-    hash: '$2a$10$CwTycUXWue0Thq9StjUM0uJ8DPLKXt1FYlwYpQW2G3cAwjKoh2WZK',  // hashed password
-    username: 'alice',
-    userID: '123'
+    comment_id: '1',
+    article_id: 'fd651085-1294-5a5c-81d3-a2dd66f6fafe',  //via NYT API
+    text: 'sample comment 1',
+    date: '05/16/25'
 });

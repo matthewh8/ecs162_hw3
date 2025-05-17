@@ -4,9 +4,14 @@ venv/
 .venv/
 ENV/
 .env
+myenv/
+.myenv/
 node_modules/
 npm-debug.log
 yarn-error.log
 yarn-debug.log
 .pnpm-debug.log
 .npm
+.__pycache__/
+__pycache__/
+.__pycache__

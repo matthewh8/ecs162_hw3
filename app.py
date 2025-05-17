@@ -1,15 +1,24 @@
-from flask import Flask, redirect, url_for, session, jsonify, request, send_from_directory
+from flask import Flask, redirect, url_for, session, jsonify, request, send_from_directory, render_template
 from authlib.integrations.flask_client import OAuth
 from authlib.common.security import generate_token
 from pymongo import MongoClient
 from bson import ObjectId
 import os
-import datetime
+from datetime import datetime  # Fixed import for datetime
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+client = MongoClient("mongodb://root:rootpassword@mongo:27017/mydatabase?authSource=admin")
+db = client.mydatabase
+comments = db.comments
 
+try:
+    result = comments.insert_one({"test": "data"})
+    print("hello")
+    print("Insert result:", result.inserted_id)
+except Exception as e:
+    print("Insert failed:", e)
 
 oauth = OAuth(app)
 
@@ -35,7 +44,7 @@ def get_key():
 @app.route('/')
 def home():
     # user = session.get('user')
-    return send_from_directory("templates", "index.html")
+    return render_template('index.html')
 
 
 @app.route('/login')
@@ -54,29 +63,60 @@ def authorize():
     return redirect('/')
 
 
-
-@app.route("/post_comments", methods = ['POST'])
+@app.route("/post_comments", methods=['POST'])
 def post_comment():
     data = request.json
-    if 'user_id' in session:
-        comment = {
-            "article_id": data['article_id'],
-            "text": data['text'],
-            "username": data['username'],
-            "timestamp": datetime.utcnow(),
-        }
-        db.comments.insert_one(comment)
-    return jsonify({"status":"success"})
+    print("Received comment data:", data)
+    
+    # In a real app, you'd get user info from the session
+    # For demo purposes, use the username from the request or a default
+    username = data.get('username', 'anonymous')
+    
+    comment = {
+        "article_id": data['article_id'],
+        "text": data['text'],
+        "username": username,
+        "timestamp": datetime.utcnow()
+    }
+    
+    try:
+        result = comments.insert_one(comment)
+        print(f"Comment inserted with ID: {result.inserted_id}")
+        return jsonify({"status": "success", "comment_id": str(result.inserted_id)})
+    except Exception as e:
+        print(f"Error inserting comment: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route("/get_comments/<article_id>", methods = ['GET'])
+@app.route("/get_comments/<path:article_id>", methods=['GET'])
 def get_comments(article_id):
-    comments = list(commentsdb.find({"article_id": article_id}))
-    return jsonify(comments)
+    print(f"Getting comments for article: {article_id}")
+    comments_list = []
+    try:
+        for comment in comments.find({"article_id": article_id}):
+            comment["_id"] = str(comment["_id"])  # Convert ObjectId to string
+            
+            # Handle datetime serialization
+            if isinstance(comment.get("timestamp"), datetime):
+                comment["timestamp"] = comment["timestamp"].isoformat()
+                
+            comments_list.append(comment)
+        
+        print(f"Found {len(comments_list)} comments")
+        return jsonify(comments_list)
+    except Exception as e:
+        print(f"Error fetching comments: {e}")
+        return jsonify({"error": str(e)}), 500
 
-# @app.route("/delete_comment/<comment_id>", methods=['DELETE'])
-# def delete_comment(comment_id):
-#     db.comments.delete_one({'_id': ObjectId(comment_id)})
-#     return jsonify(success=True)
+@app.route("/delete_comment/<comment_id>", methods=['DELETE'])
+def delete_comment(comment_id):
+    try:
+        result = comments.delete_one({'_id': ObjectId(comment_id)})
+        if result.deleted_count > 0:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "message": "Comment not found"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/logout')
 def logout():

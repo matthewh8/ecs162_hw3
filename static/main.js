@@ -1,3 +1,4 @@
+// Keep the original commented-out sections
 export function getFormattedDate() {
   const today = new Date();
   
@@ -86,7 +87,7 @@ document.getElementById('login-button').addEventListener('click', () => {
 
 let currentArticleId = null;
 
-document.addEventListener('click', function(e){ // waits for click on the button:
+document.addEventListener('click', async function(e){ // waits for click on the button:
   if(e.target.classList.contains('comment-button')){
     currentArticleId = e.target.dataset.articleId;
     document.getElementById('comments-sidebar').style.display = 'block';
@@ -95,34 +96,49 @@ document.addEventListener('click', function(e){ // waits for click on the button
   if(e.target.id === 'close-sidebar'){
     document.getElementById('comments-sidebar').style.display = 'none';
   }
-  if(e.target.id === ""){
-
-  }
+  // Keeping this commented out as it was problematic
+  // if(e.target.id === ""){ // FIX THIS PART 
+  //   console.log("posting comment")
+  //   e.preventDefault();
+  //   const formData = new FormData(this);
+  //   const articleId = e.submitter.dataset.articleId;
+  //   const data = {
+  //     article_id: formData.get('article_id'), // from 
+  //     text: formData.get('text'),
+  //     username: formData.get('username'),
+  //   };
+  //   const response = await fetch('/post_comments', {
+  //     method: 'POST',
+  //     headers: {
+  //       'Content-Type': 'application/json'
+  //     },
+  //     body: JSON.stringify(data)
+  //   });
+  //   const result = await response.json();
+  //   loadComments(formData.get('article_id'));
+  // }
 });
 
-async function loadComments(articleId){
-  let response = await fetch(`/get_comments/${articleId}`)
-  console.log(articleId)
-  const text = await response.text();
-  console.log(text);
-  let comments = await response.json();
-  document.getElementById('comments-list').innerHTML = renderComments(comments);
-}
-
-function renderComments(comments, parentId = null){ // having null parentId = top level
-  return comments.filter(c => c.parent_id === parentId).map(comment => 
-    `<div class="comments-list"><strong>${comment.user}</strong> at ${comment.timestamp}: ${comment.text}${renderComments(comments, comment._id)}</div>`).join('');
-}
-
-document.getElementById('comment-form').addEventListener('submit', async function(event) {
-  event.preventDefault();
-  const formData = new FormData(this);
-  const articleId = event.submitter.dataset.articleId;
+// New comment form event listener
+document.getElementById('comment-form').addEventListener('submit', async function(e) {
+  console.log("Posting comment");
+  e.preventDefault();
+  
+  const articleId = document.getElementById('article-id').value;
+  const commentText = document.getElementById('comment-input').value;
+  
+  // In a real app, you'd get the username from the session
+  // For now, using a placeholder
+  const username = "user"; // Should be replaced with actual logged-in user
+  
   const data = {
-    article_id: formData.get('article_id'), // from 
-    text: formData.get('text'),
-    username: formData.get('username'),
+    article_id: articleId,
+    text: commentText,
+    username: username
   };
+  
+  console.log("Submitting comment data:", data);
+  
   const response = await fetch('/post_comments', {
     method: 'POST',
     headers: {
@@ -130,9 +146,68 @@ document.getElementById('comment-form').addEventListener('submit', async functio
     },
     body: JSON.stringify(data)
   });
+  
   const result = await response.json();
-  loadComments(formData.get('article_id'));
+  document.getElementById('comment-input').value = ''; // Clear input field
+  loadComments(articleId);
 });
+
+async function loadComments(articleId) {
+  console.log("Loading comments for article:", articleId);
+  try {
+    // Extract just the UUID part if the articleId contains "nyt://article/"
+    const cleanArticleId = articleId.includes("nyt://article/") 
+      ? articleId.split("nyt://article/")[1] 
+      : articleId;
+    
+    let response = await fetch(`/get_comments/${encodeURIComponent(cleanArticleId)}`);
+    let comments = await response.json();
+    console.log("Fetched comments:", comments);
+    document.getElementById('comments-list').innerHTML = renderComments(comments);
+  } catch (error) {
+    console.error("Error loading comments:", error);
+    document.getElementById('comments-list').innerHTML = "<p>Error loading comments</p>";
+  }
+}
+
+function renderComments(comments) {
+  console.log("Rendering comments");
+  if (!comments || comments.length === 0) {
+    return "<p>No comments yet. Be the first to comment!</p>";
+  }
+  
+  return comments.map(comment => 
+    `<div class="comment">
+      <div class="comment-header">
+        <strong>${comment.username || 'Anonymous'}</strong> 
+        <span class="timestamp">${comment.date || new Date(comment.timestamp).toLocaleString()}</span>
+      </div>
+      <div class="comment-text">${comment.text}</div>
+    </div>`
+  ).join('');
+}
+
+// Keeping the original commented-out form event listener
+// document.getElementById('comment-form').addEventListener('submit', async function(event) {
+//   console.log("posting comment")
+//   event.preventDefault();
+//   const formData = new FormData(this);
+//   const articleId = event.submitter.dataset.articleId;
+//   const data = {
+//     article_id: formData.get('article_id'), // from 
+//     text: formData.get('text'),
+//     username: formData.get('username'),
+//   };
+//   const response = await fetch('/post_comments', {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json'
+//     },
+//     body: JSON.stringify(data)
+//   });
+//   const result = await response.json();
+//   loadComments(formData.get('article_id'));
+// });
 
 
 const isJest = typeof process !== 'undefined' && process.env.JEST_WORKER_ID !== undefined; // checks if ran by jest or in app
@@ -171,4 +246,4 @@ window.onload = function() { // on window load, fetch the first batch of article
       fetchArticles();
     }
     
-  };
+};
