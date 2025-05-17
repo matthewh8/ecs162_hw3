@@ -32,8 +32,8 @@ oauth.register(
 def home():
     user = session.get('user')
     if user:
-        return f"<h2>Logged in as {user['email']}</h2><a href='/logout'>Logout</a>"
-    return send_from_directory("templates", "index.html")
+        return send_from_directory("templates", "index.html")
+    return '<a href="/login">Login with Dex</a>'
 
 @app.route('/login')
 def login():
