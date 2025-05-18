@@ -129,19 +129,26 @@ if(logoutBtn){
 let currentArticleId = null;
 
 document.addEventListener('click', async function(e){ 
-  console.log(window.user_name);
-  if(e.target.classList.contains('comment-button') && ['moderator', 'user', 'admin'].includes(window.user_name)){
-    currentArticleId = e.target.dataset.articleId;
+  // Find the closest comment button (handles clicks on child elements)
+  const commentButton = e.target.closest('.comment-button');
+  
+  if(commentButton && ['moderator', 'user', 'admin'].includes(window.user_name)){
+    console.log(window.user_name);
+    currentArticleId = commentButton.dataset.articleId;
     document.getElementById('comments-sidebar').style.display = 'block';
-    document.getElementById('sidebar-overlay').classList.add('active'); // Add overlay
+    document.getElementById('sidebar-overlay').classList.add('active');
     loadComments(currentArticleId);
   }
   else if(!['moderator', 'user', 'admin'].includes(window.user_name)){
-    window.location.href = '/login';
+    // Only redirect to login if we actually clicked a comment button
+    if(commentButton) {
+      window.location.href = '/login';
+    }
   }
+  
   if(e.target.id === 'close-sidebar'){
     document.getElementById('comments-sidebar').style.display = 'none';
-    document.getElementById('sidebar-overlay').classList.remove('active'); // Remove overlay
+    document.getElementById('sidebar-overlay').classList.remove('active');
   }
   // Keeping this commented out as it was problematic
   // if(e.target.id === ""){ // FIX THIS PART 
@@ -317,7 +324,6 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('click', async function(event) {
     const articleId = document.getElementById('article-id').value;
-    console.log(articleId);
     if (event.target.classList.contains('delete-btn')) {
       // console.log(event.target.parentNode)
       const commentId = event.target.dataset.id;
