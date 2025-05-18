@@ -67,6 +67,37 @@ def authorize():
     session['user'] = user_info
     return redirect('/')
 
+@app.route("/save_articles", methods=['POST'])
+def save_articles():
+    data = request.json
+    articles_data = data.get('articles', [])
+    
+    saved_articles = []
+    for article_data in articles_data:
+        # Extract the fields you need from NYT API response
+        article = {
+            "article_id": article_data.get('_id'),  # NYT's unique ID
+            "title": article_data.get('headline', {}).get('main', ''),
+            "content": article_data.get('abstract', ''),  # or use lead_paragraph
+            "image_url": article_data.get('multimedia', {}).get('default', {}).get('url', '') if article_data.get('multimedia') else '',
+            "created_at": datetime.utcnow()
+        }
+        
+        try:
+            # Check if article already exists
+            existing = db.articles.find_one({"article_id": article["article_id"]})
+            if not existing:
+                result = db.articles.insert_one(article)
+                article["_id"] = str(result.inserted_id)
+                saved_articles.append(article)
+                print(f"Saved article: {article['title']}")
+            else:
+                print(f"Article already exists: {article['title']}")
+        except Exception as e:
+            print(f"Error saving article: {e}")
+    
+    return jsonify({"status": "success", "saved_count": len(saved_articles)})
+
 
 @app.route("/post_comments", methods=['POST'])
 def post_comment():
