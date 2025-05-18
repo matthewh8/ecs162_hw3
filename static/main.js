@@ -107,42 +107,10 @@ export async function displayArticles(articles){ // displays articles by putting
     const commentCount = await getCommentCount(article._id);
     commentButton.innerHTML = `<span class="comment-count">${commentCount}</span>`;
     
-    console.log(commentButton.dataset.articleId);
-    commentButton.addEventListener('click', () => {
-      document.getElementById('article-id').value = commentButton.dataset.articleId;
-      loadComments(commentButton.dataset.articleId);
-    });
     articleWrapper.appendChild(commentButton);
     columns[i%3].appendChild(articleWrapper); //append wrapper containing everything to parent element column
   }
 }
-
-const loginBtn = document.getElementById('login-button'); // COVERED
-if(loginBtn){
-  document.getElementById('login-button').addEventListener('click', () => {
-    window.location.href = '/login';
-  })
-}
-
-let currentArticleId = null;
-document.addEventListener('DOMContentLoaded', function() { // COVERED
-  document.addEventListener('click', async function(e){ 
-    console.log(window.user_name);
-    if(e.target.classList.contains('comment-button') && ['moderator', 'user', 'admin'].includes(window.user_name)){
-      currentArticleId = e.target.dataset.articleId;
-      document.getElementById('comments-sidebar').style.display = 'block';
-      document.getElementById('sidebar-overlay').classList.add('active'); // Add overlay
-      loadComments(currentArticleId);
-    }
-    else if(e.target.classList.contains('comment-button') && !['moderator', 'user', 'admin'].includes(window.user_name)){
-      window.location.href = '/login';
-    }
-    if(e.target.id === 'close-sidebar'){
-      document.getElementById('comments-sidebar').style.display = 'none';
-      document.getElementById('sidebar-overlay').classList.remove('active'); // Remove overlay
-    }
-  });
-});
 
 // Update comment count after posting
 export async function updateCommentCount(articleId) { 
@@ -150,58 +118,26 @@ export async function updateCommentCount(articleId) {
     for (const button of commentButtons) {
         if (button.dataset.articleId === articleId) {
             const commentCount = await getCommentCount(articleId);
-            button.innerHTML = `Comment <span class="comment-count">${commentCount}</span>`;
+            button.innerHTML = `<span class="comment-count">${commentCount}</span>`;
             break;
         }
     }
 }
 
-// New comment form event listener
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('comment-form').addEventListener('submit', async function(e) { // NEED TEST FOR THIS
-    console.log("Posting comment");
-    e.preventDefault();
-    
-    const articleId = document.getElementById('article-id').value;
-    const commentText = document.getElementById('comment-input').value;
-    const username = "user"; 
-    
-    const data = {
-      article_id: articleId,
-      text: commentText,
-      username: username,
-      parent_id: null
-    };
-    
-    console.log("Submitting comment data:", data);
-
-    const response = await fetch('/post_comments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-    const result = await response.json();
-    document.getElementById('comment-input').value = ''; // Clear input field
-    loadComments(articleId);
-    
-    // Update comment count in the button
-    await updateCommentCount(articleId);
-  });
-});
-
-export async function loadComments(articleId) { // COVERED
+export async function loadComments(articleId) {
   console.log("Loading comments for article:", articleId);
   try {
     let response = await fetch(`/get_comments/${encodeURIComponent(articleId)}`);
     let comments = await response.json();
-    console.log("Fetched comments:", comments);
-
+    
     if (!Array.isArray(comments)) {
       console.error("Unexpected comments format:", comments);
       comments = [];
     }
+    
+    const commentHeader = document.querySelector('.comments-header h3');
+    commentHeader.textContent = `Comments ${comments.length}`;
+    
     document.getElementById('comments-list').innerHTML = renderComments(comments);
   } catch (error) {
     console.error("Error loading comments:", error);
@@ -215,74 +151,201 @@ export function renderComments(comments) {
     return "<p>No comments yet. Be the first to comment!</p>";
   }
 
-  return comments.map(comment => {
-    // Check if comment is deleted
+  // Organize comments into parent and child relationships
+  const commentMap = new Map();
+  const parentComments = [];
+  
+  // First pass: create map of all comments by ID
+  comments.forEach(comment => {
+    comment.replies = [];
+    commentMap.set(comment._id, comment);
+  });
+  
+  // Second pass: organize into parent-child structure
+  comments.forEach(comment => {
+    if (comment.parent_id && commentMap.has(comment.parent_id)) {
+      // This is a reply, add it to parent's replies
+      const parent = commentMap.get(comment.parent_id);
+      parent.replies.push(comment);
+    } else {
+      // This is a top-level comment
+      parentComments.push(comment);
+    }
+  });
+
+  // Recursive function to render a comment and its replies
+  function renderComment(comment, depth = 0) {
     const isDeleted = comment.isDeleted === true;
-    
-    // Only show buttons if comment is not deleted AND user has appropriate permissions
     const showReplyButton = !isDeleted && ['moderator', 'user', 'admin'].includes(window.user_name);
     const showDeleteButton = !isDeleted && window.user_name === 'moderator';
     
-    return `<div class="comment">
-      <div class="comment-header">
-        <strong>${comment.username || 'Anonymous'}</strong> 
-        <span class="timestamp">${new Date(comment.timestamp).toLocaleString()}</span>
-      </div>
-      <div class="comment-text ${isDeleted ? 'deleted-comment' : ''}">${comment.text}</div>
-      ${showReplyButton ? `<button class="reply-btn" data-id="${comment._id}">Reply</button>` : ''}
-      ${showDeleteButton ? `<button class="delete-btn" data-id="${comment._id}">Delete</button>` : ''}
-    </div>`;
-  }).join('');
+    // Add indentation for nested replies
+    const indentClass = depth > 0 ? 'nested-comment' : '';
+    const indentStyle = depth > 0 ? `style="margin-left: ${Math.min(depth * 20, 60)}px; border-left: 2px solid #e0e0e0; padding-left: 15px;"` : '';
+    
+    let commentHtml = `
+      <div class="comment ${indentClass}" ${indentStyle}>
+        <div class="comment-header">
+          <strong>${comment.username || 'Anonymous'}</strong> 
+          <span class="timestamp">${new Date(comment.timestamp).toLocaleString()}</span>
+        </div>
+        <div class="comment-text ${isDeleted ? 'deleted-comment' : ''}">${comment.text}</div>
+        ${showReplyButton ? `<button class="reply-btn" data-id="${comment._id}">Reply</button>` : ''}
+        ${showDeleteButton ? `<button class="delete-btn" data-id="${comment._id}">Delete</button>` : ''}
+      </div>`;
+    
+    // Render replies recursively
+    if (comment.replies && comment.replies.length > 0) {
+      comment.replies.forEach(reply => {
+        commentHtml += renderComment(reply, depth + 1);
+      });
+    }
+    
+    return commentHtml;
+  }
+
+  // Render all top-level comments and their nested replies
+  return parentComments.map(comment => renderComment(comment)).join('');
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  document.addEventListener('click', function(event) {
-    if (event.target.classList.contains('reply-btn')) {
-      // console.log(event.target.parentNode)
+// Global state to track current article and prevent duplicate event listeners
+let currentArticleId = null;
+let eventListenersInitialized = false;
+
+// Initialize all event listeners once when DOM is ready
+function initializeEventListeners() {
+  if (eventListenersInitialized) return;
+  eventListenersInitialized = true;
+
+  // Handle all clicks through a single delegated event listener
+  document.addEventListener('click', async function(e) {
+    // Comment button clicks
+    const commentButton = e.target.closest('.comment-button');
+    if (commentButton) {
+      if (['moderator', 'user', 'admin'].includes(window.user_name)) {
+        console.log(window.user_name);
+        currentArticleId = commentButton.dataset.articleId;
+        document.getElementById('comments-sidebar').style.display = 'block';
+        document.getElementById('sidebar-overlay').classList.add('active');
+        document.getElementById('article-id').value = currentArticleId;
+        loadComments(currentArticleId);
+      } else {
+        window.location.href = '/login';
+      }
+      return;
+    }
+
+    // Close sidebar buttons
+    if (e.target.id === 'close-sidebar') {
+      document.getElementById('comments-sidebar').style.display = 'none';
+      document.getElementById('sidebar-overlay').classList.remove('active');
+      return;
+    }
+
+    if (e.target.id === 'close-account-sidebar') {
+      document.getElementById('account-sidebar').style.display = 'none';
+      document.getElementById('sidebar-overlay').classList.remove('active');
+      return;
+    }
+
+    // Account button click
+    if (e.target.id === 'account-button') {
+      document.getElementById('account-sidebar').style.display = 'block';
+      document.getElementById('sidebar-overlay').classList.add('active');
+      return;
+    }
+
+    // Sidebar overlay click (close both sidebars)
+    if (e.target.id === 'sidebar-overlay') {
+      document.getElementById('account-sidebar').style.display = 'none';
+      document.getElementById('comments-sidebar').style.display = 'none';
+      document.getElementById('sidebar-overlay').classList.remove('active');
+      return;
+    }
+
+    // Reply button clicks
+    if (e.target.classList.contains('reply-btn')) {
       const existingForm = document.querySelector('.reply-form');
       if (existingForm) existingForm.remove();
+      
       const form = document.createElement('form');
       form.className = 'reply-form';
       form.innerHTML = `
         <textarea name="reply" required></textarea>
         <button type="submit">Post Reply</button>
       `;
-      console.log(event.target.dataset.id); // event.target.dataset.id gets correct parent comment id
-      form.dataset.parentId = event.target.dataset.id;
-
-      event.target.parentNode.appendChild(form);
+      form.dataset.parentId = e.target.dataset.id;
+      e.target.parentNode.appendChild(form);
+      return;
     }
-  });
-});
 
-document.addEventListener('DOMContentLoaded', function() {
-  document.addEventListener('click', async function(event) {
-    const articleId = document.getElementById('article-id').value;
-    console.log(articleId);
-    if (event.target.classList.contains('delete-btn')) {
-      // console.log(event.target.parentNode)
-      const commentId = event.target.dataset.id;
+    // Delete button clicks
+    if (e.target.classList.contains('delete-btn')) {
+      const commentId = e.target.dataset.id;
       const response = await fetch(`/delete_comment/${commentId}`, {method:'DELETE'});
       const result = await response.json();
-      if (!result.success) {alert(result.message || 'Failed to delete comment.');} 
+      if (!result.success) {
+        alert(result.message || 'Failed to delete comment.');
+      } 
+      const articleId = document.getElementById('article-id').value;
       loadComments(articleId);
-      
-      // Update comment count after deletion
       await updateCommentCount(articleId);
+      return;
+    }
+
+    // Login/logout button clicks
+    if (e.target.id === 'login-button') {
+      window.location.href = '/login';
+      return;
+    }
+
+    if (e.target.id === 'logout-button' || e.target.id === 'logout-button-sidebar') {
+      window.location.href = '/logout';
+      return;
     }
   });
-});
 
-document.addEventListener('DOMContentLoaded', function() { // NEED TO COVER
+  // Handle form submissions through a single delegated event listener
   document.addEventListener('submit', async function(e) {
+    // Main comment form submission
+    if (e.target.id === 'comment-form') {
+      console.log("Posting comment");
+      e.preventDefault();
+      
+      const articleId = document.getElementById('article-id').value;
+      const commentText = document.getElementById('comment-input').value;
+      const username = window.user_name; 
+      
+      const data = {
+        article_id: articleId,
+        text: commentText,
+        username: username,
+        parent_id: null
+      };
+      
+      console.log("Submitting comment data:", data);
+
+      const response = await fetch('/post_comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+      document.getElementById('comment-input').value = ''; // Clear input field
+      loadComments(articleId);
+      await updateCommentCount(articleId);
+      return;
+    }
+
+    // Reply form submission
     if (e.target.classList.contains('reply-form')) {
       e.preventDefault();
+      
       const replyText = e.target.querySelector('textarea').value;
-      console.log(replyText);
       const parentId = e.target.dataset.parentId;
-      console.log(parentId);
       const articleId = document.getElementById('article-id').value;
-      console.log(articleId);
       const username = "user";
 
       const data = {
@@ -301,73 +364,11 @@ document.addEventListener('DOMContentLoaded', function() { // NEED TO COVER
       });
       const result = await response.json();
       loadComments(articleId);
-      
-      // Update comment count after reply
       await updateCommentCount(articleId);
+      return;
     }
   });
-});
-
-document.addEventListener('DOMContentLoaded', function() { // COVERED
-  const accountButton = document.getElementById('account-button');
-  const accountSidebar = document.getElementById('account-sidebar');
-  const closeAccountSidebar = document.getElementById('close-account-sidebar');
-  const sidebarOverlay = document.getElementById('sidebar-overlay');
-  const logoutButtonSidebar = document.getElementById('logout-button-sidebar');
-
-  if (accountButton) {
-      accountButton.addEventListener('click', function() {
-          accountSidebar.style.display = 'block';
-          sidebarOverlay.classList.add('active');
-      });
-  }
-
-  if (closeAccountSidebar) {
-      closeAccountSidebar.addEventListener('click', function() {
-          accountSidebar.style.display = 'none';
-          sidebarOverlay.classList.remove('active');
-      });
-  }
-
-  if (sidebarOverlay) {
-      sidebarOverlay.addEventListener('click', function() {
-          // Close both sidebars when overlay is clicked
-          accountSidebar.style.display = 'none';
-          document.getElementById('comments-sidebar').style.display = 'none';
-          sidebarOverlay.classList.remove('active');
-      });
-  }
-
-  if (logoutButtonSidebar) { // COVERED
-      logoutButtonSidebar.addEventListener('click', function() {
-          window.location.href = '/logout';
-      });
-  }
-});
-
-
-// Keeping the original commented-out form event listener
-// document.getElementById('comment-form').addEventListener('submit', async function(event) {
-//   console.log("posting comment")
-//   event.preventDefault();
-//   const formData = new FormData(this);
-//   const articleId = event.submitter.dataset.articleId;
-//   const data = {
-//     article_id: formData.get('article_id'), // from 
-//     text: formData.get('text'),
-//     username: formData.get('username'),
-//   };
-//   const response = await fetch('/post_comments', {
-//     method: 'POST',
-//     headers: {
-//     'Content-Type': 'application/json'
-//     },
-//     body: JSON.stringify(data)
-//   });
-//   const result = await response.json();
-//   loadComments(formData.get('article_id'));
-// });
-
+}
 
 const isJest = typeof process !== 'undefined' && process.env.JEST_WORKER_ID !== undefined; // checks if ran by jest or in app
 
@@ -405,4 +406,6 @@ window.onload = function() { // on window load, fetch the first batch of article
       fetchArticles();
     }
     
+    // Initialize event listeners once
+    initializeEventListeners();
 };
