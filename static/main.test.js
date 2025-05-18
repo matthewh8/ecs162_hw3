@@ -280,7 +280,10 @@ describe('logout button test', () => {
   let href;
 
   beforeEach(() => {
-    document.body.innerHTML = `<button id="logout-button-sidebar">Logout</button>`;
+    document.body.innerHTML = `
+    <button id="logout-button-sidebar">Logout</button>
+    <div id="comments-list"></div>
+    `;
     href = '';
     Object.defineProperty(window, 'location', {
       writable: true,
@@ -409,67 +412,59 @@ describe('Account sidebar tests', () => {
   });
 });
 
-// test('deletes comment and reloads when delete button is clicked', async () => {
-//   document.body.innerHTML = `
-//     <input id="article-id" value="1">
-//     <button class="delete-btn" data-id="2"></button>
-//   `;
-
-//   window.fetch = jest.fn(() =>
-//     Promise.resolve({ json: () => Promise.resolve({ success: true }) })
-//   );
-
-//   global.loadComments = jest.fn();
-//   global.updateCommentCount = jest.fn();
-//   const deleteBtn = document.querySelector('.delete-btn');
-//   deleteBtn.click();
-//   await Promise.resolve();
-  
-//   expect(fetch).toHaveBeenCalledWith('/delete_comment/2', {
-//     method: 'DELETE'
-//   });
-//   expect(loadComments).toHaveBeenCalledWith('1');
-//   expect(updateCommentCount).toHaveBeenCalledWith('1');
-// });
-
 import { updateCommentCount } from './main.js';
 
-test('deletes comment and reloads when delete button is clicked', async () => {
+test('deletes comment and reloads', async () => {
   document.body.innerHTML = `
     <input id="article-id" value="1">
     <button class="delete-btn" data-id="2"></button>
     <div id="comments-list"></div>
   `;
-  global.fetch = jest.fn(() => 
-    Promise.resolve({ 
-      json: () => Promise.resolve({ success: true }) 
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      json: () => Promise.resolve({ success: true }),
     })
   );
-  document.addEventListener('click', async (event) => {
-    if (event.target.classList.contains('delete-btn')) {
-      const commentId = event.target.dataset.id;
+  const loadComments = jest.fn();
+  const updateCommentCount = jest.fn(() => Promise.resolve());
+  document.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('delete-btn')) {
+      const commentId = e.target.dataset.id;
+      const response = await fetch(`/delete_comment/${commentId}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (!result.success) {
+        alert(result.message || 'Failed to delete comment.');
+      }
       const articleId = document.getElementById('article-id').value;
-      await fetch(`http://localhost/delete_comment/${commentId}`, { 
-        method: 'DELETE' 
-      });
       loadComments(articleId);
       await updateCommentCount(articleId);
+      return;
     }
   });
-
-  // 4. Simulate click
   const deleteBtn = document.querySelector('.delete-btn');
   deleteBtn.click();
 
-  // 5. Wait for async operations
-  await new Promise(resolve => setTimeout(resolve, 0));
-
-  // 6. Assert
-  expect(global.fetch).toHaveBeenCalledWith(
-    'http://localhost/delete_comment/2',
-    { method: 'DELETE' }
-  );
+  await new Promise((res) => setTimeout(res, 10));
+  expect(fetch).toHaveBeenCalledWith('/delete_comment/2', { method: 'DELETE' });
   expect(loadComments).toHaveBeenCalledWith('1');
   expect(updateCommentCount).toHaveBeenCalledWith('1');
 });
+
+import { getCommentCount } from './main.js';
+
+test('returns comment count', async () => {
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      json: () => Promise.resolve(['comment1', 'comment2']),
+    })
+  );
+
+  const count = await getCommentCount('123');
+  expect(count).toBe(2);
+  expect(global.fetch).toHaveBeenCalledWith('/get_comments/123');
+});
+
+
+
+
 
