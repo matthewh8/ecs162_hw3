@@ -43,8 +43,13 @@ def get_key():
 
 @app.route('/')
 def home():
-    # user = session.get('user')
-    return render_template('index.html')
+    user = session.get('user')
+    # print(user, flush=True)
+    # print("hi", flush=True)
+    if user: 
+        user_name = user.get('name') 
+    else: user_name = None
+    return render_template('index.html', user_name = user_name)
 
 
 @app.route('/login')
@@ -62,7 +67,7 @@ def authorize():
     session['user'] = user_info
     return redirect('/')
 
-parent_id = None;
+
 @app.route("/post_comments", methods=['POST'])
 def post_comment():
     data = request.json

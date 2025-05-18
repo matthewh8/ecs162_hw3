@@ -80,10 +80,19 @@ export function displayArticles(articles){ // displays articles by putting them 
     columns[i%3].appendChild(articleWrapper); //append wrapper containing everything to parent element column
   }
 }
+const loginBtn = document.getElementById('login-button');
+if(loginBtn){
+  document.getElementById('login-button').addEventListener('click', () => {
+    window.location.href = '/login';
+  })
+}
 
-document.getElementById('login-button').addEventListener('click', () => {
-  window.location.href = '/login';
-})
+const logoutBtn = document.getElementById('logout-button');
+if(logoutBtn){
+    document.getElementById('logout-button').addEventListener('click', () => {
+    window.location.href = '/logout';
+  })
+}
 
 let currentArticleId = null;
 

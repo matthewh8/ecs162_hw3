@@ -23,7 +23,12 @@
                 </a>
             </div>
             <div>
-                <button id="login-button">Login</button>
+                {% if user_name %}
+                    <span>Hi, {{ user_name }}!</span>
+                    <button id="logout-button">Logout</button>
+                {% else %}
+                    <button id="login-button">Login</button>
+                {%endif%}
             </div>
         </div>
         <!-- second bar -->
