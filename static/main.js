@@ -133,11 +133,12 @@ if(logoutBtn){
 
 let currentArticleId = null;
 
-document.addEventListener('click', async function(e){ // waits for click on the button:
+document.addEventListener('click', async function(e){ 
   console.log(window.user_name);
   if(e.target.classList.contains('comment-button') && ['moderator', 'user', 'admin'].includes(window.user_name)){
     currentArticleId = e.target.dataset.articleId;
     document.getElementById('comments-sidebar').style.display = 'block';
+    document.getElementById('sidebar-overlay').classList.add('active'); // Add overlay
     loadComments(currentArticleId);
   }
   else if(!['moderator', 'user', 'admin'].includes(window.user_name)){
@@ -145,6 +146,7 @@ document.addEventListener('click', async function(e){ // waits for click on the 
   }
   if(e.target.id === 'close-sidebar'){
     document.getElementById('comments-sidebar').style.display = 'none';
+    document.getElementById('sidebar-overlay').classList.remove('active'); // Remove overlay
   }
   // Keeping this commented out as it was problematic
   // if(e.target.id === ""){ // FIX THIS PART 
@@ -341,7 +343,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if (sidebarOverlay) {
       sidebarOverlay.addEventListener('click', function() {
+          // Close both sidebars when overlay is clicked
           accountSidebar.style.display = 'none';
+          document.getElementById('comments-sidebar').style.display = 'none';
           sidebarOverlay.classList.remove('active');
       });
   }
