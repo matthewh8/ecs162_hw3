@@ -143,11 +143,11 @@ def get_comments(article_id):
 @app.route("/delete_comment/<comment_id>", methods=['DELETE'])
 def delete_comment(comment_id):
     try:
-        result = comments.delete_one({'_id': ObjectId(comment_id)})
-        if result.deleted_count > 0:
-            return jsonify({"success": True})
-        else:
-            return jsonify({"success": False, "message": "Comment not found"}), 404
+        result = comments.update_one(
+            {'_id': ObjectId(comment_id)},
+            {'$set': {'text': 'COMMENT DELETED BY MODERATOR'}}
+        )
+        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 

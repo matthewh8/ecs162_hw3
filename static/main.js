@@ -232,18 +232,15 @@ document.addEventListener('click', function(event) {
 });
 
 document.addEventListener('click', async function(event) {
+  const articleId = document.getElementById('article-id').value;
+  console.log(articleId);
   if (event.target.classList.contains('delete-btn')) {
     // console.log(event.target.parentNode)
     const commentId = event.target.dataset.id;
     const response = await fetch(`/delete_comment/${commentId}`, {method:'DELETE'});
     const result = await response.json();
-    if (result.success) {
-        // Remove the comment from the DOM
-        event.target.closest('.comment').remove();
-      } 
-    else {
-      alert(result.message || 'Failed to delete comment.');
-    }
+    if (!result.success) {alert(result.message || 'Failed to delete comment.');} 
+    loadComments(articleId);
   }
 });
 
