@@ -1,17 +1,24 @@
+# Virtual environments
 env/
 venv/
 .env/
 .venv/
 ENV/
-.env
 myenv/
 .myenv/
+
+# Environment files
+.env
+
+# Node.js
 node_modules/
 npm-debug.log
 yarn-error.log
 yarn-debug.log
 .pnpm-debug.log
 .npm
-.__pycache__/
+
+# Python cache
 __pycache__/
-.__pycache__
+*.py[cod]
+*$py.class
