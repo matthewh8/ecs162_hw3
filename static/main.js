@@ -115,10 +115,14 @@ if(logoutBtn){
 let currentArticleId = null;
 
 document.addEventListener('click', async function(e){ // waits for click on the button:
-  if(e.target.classList.contains('comment-button')){
+  console.log(window.user_name);
+  if(e.target.classList.contains('comment-button') && ['moderator', 'user', 'admin'].includes(window.user_name)){
     currentArticleId = e.target.dataset.articleId;
     document.getElementById('comments-sidebar').style.display = 'block';
     loadComments(currentArticleId);
+  }
+  else if(!['moderator', 'user', 'admin'].includes(window.user_name)){
+    window.location.href = '/login';
   }
   if(e.target.id === 'close-sidebar'){
     document.getElementById('comments-sidebar').style.display = 'none';
@@ -207,7 +211,7 @@ function renderComments(comments) {
         <span class="timestamp">${new Date(comment.timestamp).toLocaleString()}</span>
       </div>
       <div class="comment-text">${comment.text}</div>
-      <button class="reply-btn" data-id="${comment._id}">Reply</button>
+      ${['moderator', 'user', 'admin'].includes(window.user_name) ? `<button class="reply-btn" data-id="${comment._id}">Reply</button>` : ''}
       ${window.user_name === 'moderator' ? `<button class="delete-btn" data-id="${comment._id}">Delete</button>` : ''}
     </div>`
   ).join('');
