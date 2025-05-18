@@ -240,17 +240,24 @@ function renderComments(comments) {
     return "<p>No comments yet. Be the first to comment!</p>";
   }
 
-  return comments.map(comment => 
-    `<div class="comment">
+  return comments.map(comment => {
+    // Check if comment is deleted
+    const isDeleted = comment.isDeleted === true;
+    
+    // Only show buttons if comment is not deleted AND user has appropriate permissions
+    const showReplyButton = !isDeleted && ['moderator', 'user', 'admin'].includes(window.user_name);
+    const showDeleteButton = !isDeleted && window.user_name === 'moderator';
+    
+    return `<div class="comment">
       <div class="comment-header">
         <strong>${comment.username || 'Anonymous'}</strong> 
         <span class="timestamp">${new Date(comment.timestamp).toLocaleString()}</span>
       </div>
-      <div class="comment-text">${comment.text}</div>
-      ${['moderator', 'user', 'admin'].includes(window.user_name) ? `<button class="reply-btn" data-id="${comment._id}">Reply</button>` : ''}
-      ${window.user_name === 'moderator' ? `<button class="delete-btn" data-id="${comment._id}">Delete</button>` : ''}
-    </div>`
-  ).join('');
+      <div class="comment-text ${isDeleted ? 'deleted-comment' : ''}">${comment.text}</div>
+      ${showReplyButton ? `<button class="reply-btn" data-id="${comment._id}">Reply</button>` : ''}
+      ${showDeleteButton ? `<button class="delete-btn" data-id="${comment._id}">Delete</button>` : ''}
+    </div>`;
+  }).join('');
 }
 
 document.addEventListener('click', function(event) {

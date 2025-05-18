@@ -145,7 +145,10 @@ def delete_comment(comment_id):
     try:
         result = comments.update_one(
             {'_id': ObjectId(comment_id)},
-            {'$set': {'text': 'COMMENT DELETED BY MODERATOR'}}
+            {'$set': {
+                'text': 'COMMENT DELETED BY MODERATOR',
+                'isDeleted': True
+            }}
         )
         return jsonify({"success": True})
     except Exception as e:
