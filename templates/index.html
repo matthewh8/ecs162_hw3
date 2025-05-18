@@ -9,6 +9,8 @@
     <script type="module" src="static/main.js" defer></script>
 </head>
 <body>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    
     <header>
         <!-- top bar -->
         <div id="title-bar">
@@ -25,8 +27,12 @@
             </div>
             <div>
                 {% if user_name %}
-                    <span>Hi, {{ user_name }}!</span>
-                    <button id="logout-button">Logout</button>
+                    <div class="account-dropdown">
+                        <button class="account-button" id="account-button">
+                            Account
+                            <span class="dropdown-arrow">▼</span>
+                        </button>
+                    </div>
                 {% else %}
                     <button id="login-button">Login</button>
                 {%endif%}
@@ -77,6 +83,25 @@
             </div>
         </nav>
     </header>
+
+    <!-- Account Sidebar -->
+    <div id="account-sidebar">
+        <button id="close-account-sidebar">&times;</button>
+        <div class="account-header">
+            <div class="account-greeting">Good afternoon.</div>
+            <div class="user-email">{{ user_name if user_name else 'user@example.com' }}</div>
+        </div>
+        <div class="account-options">
+            <button class="account-option">Account Settings</button>
+            <button class="account-option">Subscription</button>
+            <button class="account-option">Reading History</button>
+            <button class="account-option">Saved Articles</button>
+            <button class="account-option">Newsletters</button>
+            <button class="account-option">Privacy Settings</button>
+            <button class="account-option logout-option" id="logout-button-sidebar">Log out</button>
+        </div>
+    </div>
+
     <main class="container">
         <div id="comments-sidebar">
             <button id="close-sidebar">&times;</button>

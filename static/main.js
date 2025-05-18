@@ -318,6 +318,41 @@ document.addEventListener('submit', async function(e) {
   }
 });
 
+document.addEventListener('DOMContentLoaded', function() {
+  const accountButton = document.getElementById('account-button');
+  const accountSidebar = document.getElementById('account-sidebar');
+  const closeAccountSidebar = document.getElementById('close-account-sidebar');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  const logoutButtonSidebar = document.getElementById('logout-button-sidebar');
+
+  if (accountButton) {
+      accountButton.addEventListener('click', function() {
+          accountSidebar.style.display = 'block';
+          sidebarOverlay.classList.add('active');
+      });
+  }
+
+  if (closeAccountSidebar) {
+      closeAccountSidebar.addEventListener('click', function() {
+          accountSidebar.style.display = 'none';
+          sidebarOverlay.classList.remove('active');
+      });
+  }
+
+  if (sidebarOverlay) {
+      sidebarOverlay.addEventListener('click', function() {
+          accountSidebar.style.display = 'none';
+          sidebarOverlay.classList.remove('active');
+      });
+  }
+
+  if (logoutButtonSidebar) {
+      logoutButtonSidebar.addEventListener('click', function() {
+          window.location.href = '/logout';
+      });
+  }
+});
+
 
 // Keeping the original commented-out form event listener
 // document.getElementById('comment-form').addEventListener('submit', async function(event) {
