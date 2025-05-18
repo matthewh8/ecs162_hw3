@@ -107,11 +107,6 @@ export async function displayArticles(articles){ // displays articles by putting
     const commentCount = await getCommentCount(article._id);
     commentButton.innerHTML = `<span class="comment-count">${commentCount}</span>`;
     
-    console.log(commentButton.dataset.articleId);
-    commentButton.addEventListener('click', () => {
-      document.getElementById('article-id').value = commentButton.dataset.articleId;
-      loadComments(commentButton.dataset.articleId);
-    });
     articleWrapper.appendChild(commentButton);
     columns[i%3].appendChild(articleWrapper); //append wrapper containing everything to parent element column
   }
@@ -177,7 +172,7 @@ export async function updateCommentCount(articleId) {
     for (const button of commentButtons) {
         if (button.dataset.articleId === articleId) {
             const commentCount = await getCommentCount(articleId);
-            button.innerHTML = `Comment <span class="comment-count">${commentCount}</span>`;
+            button.innerHTML = `<span class="comment-count">${commentCount}</span>`;
             break;
         }
     }
@@ -242,24 +237,61 @@ export function renderComments(comments) {
     return "<p>No comments yet. Be the first to comment!</p>";
   }
 
-  return comments.map(comment => {
-    // Check if comment is deleted
+  // Organize comments into parent and child relationships
+  const commentMap = new Map();
+  const parentComments = [];
+  
+  // First pass: create map of all comments by ID
+  comments.forEach(comment => {
+    comment.replies = [];
+    commentMap.set(comment._id, comment);
+  });
+  
+  // Second pass: organize into parent-child structure
+  comments.forEach(comment => {
+    if (comment.parent_id && commentMap.has(comment.parent_id)) {
+      // This is a reply, add it to parent's replies
+      const parent = commentMap.get(comment.parent_id);
+      parent.replies.push(comment);
+    } else {
+      // This is a top-level comment
+      parentComments.push(comment);
+    }
+  });
+
+  // Recursive function to render a comment and its replies
+  function renderComment(comment, depth = 0) {
     const isDeleted = comment.isDeleted === true;
-    
-    // Only show buttons if comment is not deleted AND user has appropriate permissions
     const showReplyButton = !isDeleted && ['moderator', 'user', 'admin'].includes(window.user_name);
     const showDeleteButton = !isDeleted && window.user_name === 'moderator';
     
-    return `<div class="comment">
-      <div class="comment-header">
-        <strong>${comment.username || 'Anonymous'}</strong> 
-        <span class="timestamp">${new Date(comment.timestamp).toLocaleString()}</span>
-      </div>
-      <div class="comment-text ${isDeleted ? 'deleted-comment' : ''}">${comment.text}</div>
-      ${showReplyButton ? `<button class="reply-btn" data-id="${comment._id}">Reply</button>` : ''}
-      ${showDeleteButton ? `<button class="delete-btn" data-id="${comment._id}">Delete</button>` : ''}
-    </div>`;
-  }).join('');
+    // Add indentation for nested replies
+    const indentClass = depth > 0 ? 'nested-comment' : '';
+    const indentStyle = depth > 0 ? `style="margin-left: ${Math.min(depth * 20, 60)}px; border-left: 2px solid #e0e0e0; padding-left: 15px;"` : '';
+    
+    let commentHtml = `
+      <div class="comment ${indentClass}" ${indentStyle}>
+        <div class="comment-header">
+          <strong>${comment.username || 'Anonymous'}</strong> 
+          <span class="timestamp">${new Date(comment.timestamp).toLocaleString()}</span>
+        </div>
+        <div class="comment-text ${isDeleted ? 'deleted-comment' : ''}">${comment.text}</div>
+        ${showReplyButton ? `<button class="reply-btn" data-id="${comment._id}">Reply</button>` : ''}
+        ${showDeleteButton ? `<button class="delete-btn" data-id="${comment._id}">Delete</button>` : ''}
+      </div>`;
+    
+    // Render replies recursively
+    if (comment.replies && comment.replies.length > 0) {
+      comment.replies.forEach(reply => {
+        commentHtml += renderComment(reply, depth + 1);
+      });
+    }
+    
+    return commentHtml;
+  }
+
+  // Render all top-level comments and their nested replies
+  return parentComments.map(comment => renderComment(comment)).join('');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
