@@ -112,67 +112,6 @@ export async function displayArticles(articles){ // displays articles by putting
   }
 }
 
-const loginBtn = document.getElementById('login-button');
-if(loginBtn){
-  document.getElementById('login-button').addEventListener('click', () => {
-    window.location.href = '/login';
-  })
-}
-
-const logoutBtn = document.getElementById('logout-button');
-if(logoutBtn){
-    document.getElementById('logout-button').addEventListener('click', () => {
-    window.location.href = '/logout';
-  })
-}
-
-let currentArticleId = null;
-
-document.addEventListener('click', async function(e){ 
-  // Find the closest comment button (handles clicks on child elements)
-  const commentButton = e.target.closest('.comment-button');
-  
-  if(commentButton && ['moderator', 'user', 'admin'].includes(window.user_name)){
-    console.log(window.user_name);
-    currentArticleId = commentButton.dataset.articleId;
-    document.getElementById('comments-sidebar').style.display = 'block';
-    document.getElementById('sidebar-overlay').classList.add('active');
-    loadComments(currentArticleId);
-  }
-  else if(!['moderator', 'user', 'admin'].includes(window.user_name)){
-    // Only redirect to login if we actually clicked a comment button
-    if(commentButton) {
-      window.location.href = '/login';
-    }
-  }
-  
-  if(e.target.id === 'close-sidebar'){
-    document.getElementById('comments-sidebar').style.display = 'none';
-    document.getElementById('sidebar-overlay').classList.remove('active');
-  }
-  // Keeping this commented out as it was problematic
-  // if(e.target.id === ""){ // FIX THIS PART 
-  //   console.log("posting comment")
-  //   e.preventDefault();
-  //   const formData = new FormData(this);
-  //   const articleId = e.submitter.dataset.articleId;
-  //   const data = {
-  //     article_id: formData.get('article_id'), // from 
-  //     text: formData.get('text'),
-  //     username: formData.get('username'),
-  //   };
-  //   const response = await fetch('/post_comments', {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json'
-  //     },
-  //     body: JSON.stringify(data)
-  //   });
-  //   const result = await response.json();
-  //   loadComments(formData.get('article_id'));
-  // }
-});
-
 // Update comment count after posting
 export async function updateCommentCount(articleId) {
     const commentButtons = document.querySelectorAll('.comment-button');
@@ -184,41 +123,6 @@ export async function updateCommentCount(articleId) {
         }
     }
 }
-
-// New comment form event listener
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('comment-form').addEventListener('submit', async function(e) {
-    console.log("Posting comment");
-    e.preventDefault();
-    
-    const articleId = document.getElementById('article-id').value;
-    const commentText = document.getElementById('comment-input').value;
-    const username = "user"; 
-    
-    const data = {
-      article_id: articleId,
-      text: commentText,
-      username: username,
-      parent_id: null
-    };
-    
-    console.log("Submitting comment data:", data);
-
-    const response = await fetch('/post_comments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-    const result = await response.json();
-    document.getElementById('comment-input').value = ''; // Clear input field
-    loadComments(articleId);
-    
-    // Update comment count in the button
-    await updateCommentCount(articleId);
-  });
-});
 
 export async function loadComments(articleId) {
   console.log("Loading comments for article:", articleId);
@@ -301,53 +205,144 @@ export function renderComments(comments) {
   return parentComments.map(comment => renderComment(comment)).join('');
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  document.addEventListener('click', function(event) {
-    if (event.target.classList.contains('reply-btn')) {
-      // console.log(event.target.parentNode)
+// Global state to track current article and prevent duplicate event listeners
+let currentArticleId = null;
+let eventListenersInitialized = false;
+
+// Initialize all event listeners once when DOM is ready
+function initializeEventListeners() {
+  if (eventListenersInitialized) return;
+  eventListenersInitialized = true;
+
+  // Handle all clicks through a single delegated event listener
+  document.addEventListener('click', async function(e) {
+    // Comment button clicks
+    const commentButton = e.target.closest('.comment-button');
+    if (commentButton) {
+      if (['moderator', 'user', 'admin'].includes(window.user_name)) {
+        console.log(window.user_name);
+        currentArticleId = commentButton.dataset.articleId;
+        document.getElementById('comments-sidebar').style.display = 'block';
+        document.getElementById('sidebar-overlay').classList.add('active');
+        document.getElementById('article-id').value = currentArticleId;
+        loadComments(currentArticleId);
+      } else {
+        window.location.href = '/login';
+      }
+      return;
+    }
+
+    // Close sidebar buttons
+    if (e.target.id === 'close-sidebar') {
+      document.getElementById('comments-sidebar').style.display = 'none';
+      document.getElementById('sidebar-overlay').classList.remove('active');
+      return;
+    }
+
+    if (e.target.id === 'close-account-sidebar') {
+      document.getElementById('account-sidebar').style.display = 'none';
+      document.getElementById('sidebar-overlay').classList.remove('active');
+      return;
+    }
+
+    // Account button click
+    if (e.target.id === 'account-button') {
+      document.getElementById('account-sidebar').style.display = 'block';
+      document.getElementById('sidebar-overlay').classList.add('active');
+      return;
+    }
+
+    // Sidebar overlay click (close both sidebars)
+    if (e.target.id === 'sidebar-overlay') {
+      document.getElementById('account-sidebar').style.display = 'none';
+      document.getElementById('comments-sidebar').style.display = 'none';
+      document.getElementById('sidebar-overlay').classList.remove('active');
+      return;
+    }
+
+    // Reply button clicks
+    if (e.target.classList.contains('reply-btn')) {
       const existingForm = document.querySelector('.reply-form');
       if (existingForm) existingForm.remove();
+      
       const form = document.createElement('form');
       form.className = 'reply-form';
       form.innerHTML = `
         <textarea name="reply" required></textarea>
         <button type="submit">Post Reply</button>
       `;
-      console.log(event.target.dataset.id); // event.target.dataset.id gets correct parent comment id
-      form.dataset.parentId = event.target.dataset.id;
-
-      event.target.parentNode.appendChild(form);
+      form.dataset.parentId = e.target.dataset.id;
+      e.target.parentNode.appendChild(form);
+      return;
     }
-  });
-});
 
-document.addEventListener('DOMContentLoaded', function() {
-  document.addEventListener('click', async function(event) {
-    const articleId = document.getElementById('article-id').value;
-    if (event.target.classList.contains('delete-btn')) {
-      // console.log(event.target.parentNode)
-      const commentId = event.target.dataset.id;
+    // Delete button clicks
+    if (e.target.classList.contains('delete-btn')) {
+      const commentId = e.target.dataset.id;
       const response = await fetch(`/delete_comment/${commentId}`, {method:'DELETE'});
       const result = await response.json();
-      if (!result.success) {alert(result.message || 'Failed to delete comment.');} 
+      if (!result.success) {
+        alert(result.message || 'Failed to delete comment.');
+      } 
+      const articleId = document.getElementById('article-id').value;
       loadComments(articleId);
-      
-      // Update comment count after deletion
       await updateCommentCount(articleId);
+      return;
+    }
+
+    // Login/logout button clicks
+    if (e.target.id === 'login-button') {
+      window.location.href = '/login';
+      return;
+    }
+
+    if (e.target.id === 'logout-button' || e.target.id === 'logout-button-sidebar') {
+      window.location.href = '/logout';
+      return;
     }
   });
-});
 
-document.addEventListener('DOMContentLoaded', function() {
+  // Handle form submissions through a single delegated event listener
   document.addEventListener('submit', async function(e) {
+    // Main comment form submission
+    if (e.target.id === 'comment-form') {
+      console.log("Posting comment");
+      e.preventDefault();
+      
+      const articleId = document.getElementById('article-id').value;
+      const commentText = document.getElementById('comment-input').value;
+      const username = window.user_name; 
+      
+      const data = {
+        article_id: articleId,
+        text: commentText,
+        username: username,
+        parent_id: null
+      };
+      
+      console.log("Submitting comment data:", data);
+
+      const response = await fetch('/post_comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+      document.getElementById('comment-input').value = ''; // Clear input field
+      loadComments(articleId);
+      await updateCommentCount(articleId);
+      return;
+    }
+
+    // Reply form submission
     if (e.target.classList.contains('reply-form')) {
       e.preventDefault();
+      
       const replyText = e.target.querySelector('textarea').value;
-      console.log(replyText);
       const parentId = e.target.dataset.parentId;
-      console.log(parentId);
       const articleId = document.getElementById('article-id').value;
-      console.log(articleId);
       const username = "user";
 
       const data = {
@@ -366,50 +361,11 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       const result = await response.json();
       loadComments(articleId);
-      
-      // Update comment count after reply
       await updateCommentCount(articleId);
+      return;
     }
   });
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-  const accountButton = document.getElementById('account-button');
-  const accountSidebar = document.getElementById('account-sidebar');
-  const closeAccountSidebar = document.getElementById('close-account-sidebar');
-  const sidebarOverlay = document.getElementById('sidebar-overlay');
-  const logoutButtonSidebar = document.getElementById('logout-button-sidebar');
-
-  if (accountButton) {
-      accountButton.addEventListener('click', function() {
-          accountSidebar.style.display = 'block';
-          sidebarOverlay.classList.add('active');
-      });
-  }
-
-  if (closeAccountSidebar) {
-      closeAccountSidebar.addEventListener('click', function() {
-          accountSidebar.style.display = 'none';
-          sidebarOverlay.classList.remove('active');
-      });
-  }
-
-  if (sidebarOverlay) {
-      sidebarOverlay.addEventListener('click', function() {
-          // Close both sidebars when overlay is clicked
-          accountSidebar.style.display = 'none';
-          document.getElementById('comments-sidebar').style.display = 'none';
-          sidebarOverlay.classList.remove('active');
-      });
-  }
-
-  if (logoutButtonSidebar) {
-      logoutButtonSidebar.addEventListener('click', function() {
-          window.location.href = '/logout';
-      });
-  }
-});
-
+}
 
 // Keeping the original commented-out form event listener
 // document.getElementById('comment-form').addEventListener('submit', async function(event) {
@@ -433,6 +389,51 @@ document.addEventListener('DOMContentLoaded', function() {
 //   loadComments(formData.get('article_id'));
 // });
 
+// Keeping the original commented-out sections
+// document.addEventListener('click', async function(e){ 
+//   // Find the closest comment button (handles clicks on child elements)
+//   const commentButton = e.target.closest('.comment-button');
+//   
+//   if(commentButton && ['moderator', 'user', 'admin'].includes(window.user_name)){
+//     console.log(window.user_name);
+//     currentArticleId = commentButton.dataset.articleId;
+//     document.getElementById('comments-sidebar').style.display = 'block';
+//     document.getElementById('sidebar-overlay').classList.add('active');
+//     loadComments(currentArticleId);
+//   }
+//   else if(!['moderator', 'user', 'admin'].includes(window.user_name)){
+//     // Only redirect to login if we actually clicked a comment button
+//     if(commentButton) {
+//       window.location.href = '/login';
+//     }
+//   }
+//   
+//   if(e.target.id === 'close-sidebar'){
+//     document.getElementById('comments-sidebar').style.display = 'none';
+//     document.getElementById('sidebar-overlay').classList.remove('active');
+//   }
+//   // Keeping this commented out as it was problematic
+//   // if(e.target.id === ""){ // FIX THIS PART 
+//   //   console.log("posting comment")
+//   //   e.preventDefault();
+//   //   const formData = new FormData(this);
+//   //   const articleId = e.submitter.dataset.articleId;
+//   //   const data = {
+//   //     article_id: formData.get('article_id'), // from 
+//   //     text: formData.get('text'),
+//   //     username: formData.get('username'),
+//   //   };
+//   //   const response = await fetch('/post_comments', {
+//   //     method: 'POST',
+//   //     headers: {
+//   //       'Content-Type': 'application/json'
+//   //     },
+//   //     body: JSON.stringify(data)
+//   //   });
+//   //   const result = await response.json();
+//   //   loadComments(formData.get('article_id'));
+//   // }
+// });
 
 const isJest = typeof process !== 'undefined' && process.env.JEST_WORKER_ID !== undefined; // checks if ran by jest or in app
 
@@ -470,4 +471,6 @@ window.onload = function() { // on window load, fetch the first batch of article
       fetchArticles();
     }
     
+    // Initialize event listeners once
+    initializeEventListeners();
 };
