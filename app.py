@@ -151,6 +151,34 @@ def delete_comment(comment_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
+@app.route("/redact_comment/<comment_id>", methods=['PATCH'])
+def redact_comment(comment_id):
+    try:
+        data = request.json
+        redacted_text = data.get('redacted_text')
+        
+        if not redacted_text:
+            return jsonify({"success": False, "message": "No redacted text provided"}), 400
+        
+        result = comments.update_one(
+            {'_id': ObjectId(comment_id)},
+            {'$set': {
+                'text': redacted_text,
+                'isRedacted': True,
+                'redacted_at': datetime.utcnow(),
+                'redacted_by': 'moderator' 
+            }}
+        )
+        
+        if result.modified_count > 0:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "message": "Comment not found"}), 404
+            
+    except Exception as e:
+        print(f"Error redacting comment: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+        
 @app.route('/logout')
 def logout():
     session.clear()

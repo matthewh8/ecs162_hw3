@@ -1,3 +1,8 @@
+let redactionMode = false;
+let currentRedactionCommentId = null;
+let currentArticleId = null;
+let eventListenersInitialized = false;
+
 export function getFormattedDate() {
   const today = new Date();
   
@@ -113,7 +118,7 @@ export async function displayArticles(articles){
   }
 }
 
-// Update comment count after posting
+// Update comment count after posting a new one
 export async function updateCommentCount(articleId) { 
     const commentButtons = document.querySelectorAll('.comment-button');
     for (const button of commentButtons) {
@@ -132,12 +137,7 @@ export async function loadComments(articleId) {
     let response = await fetch(`/get_comments/${encodeURIComponent(articleId)}`);
     let comments = await response.json();
     
-    if (!Array.isArray(comments)) {
-      console.error("Unexpected comments format:", comments);
-      comments = [];
-    }
-    
-    const commentHeader = document.querySelector('.comments-header h3');
+    const commentHeader = document.querySelector('.comments-header');
     commentHeader.textContent = `Comments ${comments.length}`;
     
     document.getElementById('comments-list').innerHTML = renderComments(comments);
@@ -178,7 +178,9 @@ export function renderComments(comments) {
   function renderComment(comment, depth = 0) {
     const isDeleted = comment.isDeleted === true;
     const showReplyButton = !isDeleted && ['moderator', 'user', 'admin'].includes(window.user_name);
+    // moderator only
     const showDeleteButton = !isDeleted && window.user_name === 'moderator';
+    const showRedactButton = !isDeleted && window.user_name === 'moderator';
     
     const indentClass = depth > 0 ? 'nested-comment' : '';
     const indentStyle = depth > 0 ? `style="margin-left: ${Math.min(depth * 20, 60)}px; border-left: 2px solid #e0e0e0; padding-left: 15px;"` : '';
@@ -189,9 +191,10 @@ export function renderComments(comments) {
           <strong>${comment.username || 'Anonymous'}</strong> 
           <span class="timestamp">${new Date(comment.timestamp).toLocaleString()}</span>
         </div>
-        <div class="comment-text ${isDeleted ? 'deleted-comment' : ''}">${comment.text}</div>
+        <div class="comment-text ${isDeleted ? 'deleted-comment' : ''}" data-comment-id="${comment._id}">${comment.text}</div>
         ${showReplyButton ? `<button class="reply-btn" data-id="${comment._id}">Reply</button>` : ''}
         ${showDeleteButton ? `<button class="delete-btn" data-id="${comment._id}">Delete</button>` : ''}
+        ${showRedactButton ? `<button class="redact-btn" data-id="${comment._id}">Redact</button>` : ''}
       </div>`;
     
     // replies render recursively
@@ -208,9 +211,49 @@ export function renderComments(comments) {
   return parentComments.map(comment => renderComment(comment)).join('');
 }
 
-// global variables
-let currentArticleId = null;
-let eventListenersInitialized = false;
+function getTextOffset(root, node, offset) {
+  let textOffset = 0;
+  const walker = document.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false
+  );
+  
+  let currentNode;
+  while (currentNode = walker.nextNode()) {
+    if (currentNode === node) {
+      return textOffset + offset;
+    }
+    textOffset += currentNode.textContent.length;
+  }
+  return textOffset;
+}
+
+function exitRedactionMode() {
+  redactionMode = false;
+  const redactBtn = document.querySelector(`[data-id="${currentRedactionCommentId}"]`);
+  const commentText = document.querySelector(`[data-comment-id="${currentRedactionCommentId}"]`);
+  
+  if (redactBtn) {
+    redactBtn.textContent = 'Redact';
+  }
+  
+  if (commentText) {
+    commentText.style.userSelect = '';
+    commentText.style.cursor = '';
+  }
+  
+  window.getSelection().removeAllRanges();
+  currentRedactionCommentId = null;
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && redactionMode) {
+    exitRedactionMode();
+  }
+});
+
 
 // consolidated handler of all event clicks
 function initializeEventListeners() {
@@ -287,6 +330,71 @@ function initializeEventListeners() {
       return;
     }
 
+    if (e.target.classList.contains('redact-btn')) {
+      const commentId = e.target.dataset.id;
+      const commentText = document.querySelector(`[data-comment-id="${commentId}"]`);
+      
+      if (!redactionMode) {
+        redactionMode = true;
+        currentRedactionCommentId = commentId;
+        
+        e.target.textContent = 'Confirm Redaction';
+        
+        commentText.style.userSelect = 'text';
+        commentText.style.cursor = 'text';
+        
+      } else if (currentRedactionCommentId === commentId) {
+        const selection = window.getSelection();
+        
+        if (selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const selectedText = selection.toString();
+          
+          if (selectedText && commentText.contains(range.commonAncestorContainer)) {
+            try {
+              const fullText = commentText.textContent;
+              const startOffset = getTextOffset(commentText, range.startContainer, range.startOffset);
+              const endOffset = getTextOffset(commentText, range.endContainer, range.endOffset);
+              
+              const redactedText = fullText.substring(0, startOffset) +
+                    '\u2588'.repeat(selectedText.length) +
+                    fullText.substring(endOffset);
+              
+              const response = await fetch(`/redact_comment/${commentId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                  redacted_text: redactedText,
+                  original_start: startOffset,
+                  original_end: endOffset
+                })
+              });
+              
+              const result = await response.json();
+              if (result.success) {
+                const articleId = document.getElementById('article-id').value;
+                loadComments(articleId);
+              } else {
+                alert(result.message || 'Failed to redact comment.');
+              }
+            } catch (error) {
+              console.error('Error redacting comment:', error);
+              alert('Failed to redact comment.');
+            }
+          } else {
+            alert('Please select text within the comment to redact.');
+          }
+        } else {
+          alert('Please select text to redact.');
+        }
+        
+        exitRedactionMode();
+      }
+      return;
+    }
+
     if (e.target.id === 'login-button') {
       window.location.href = '/login';
       return;
@@ -298,7 +406,6 @@ function initializeEventListeners() {
     }
   });
 
-  // consolidated event listener
   document.addEventListener('submit', async function(e) {
     if (e.target.id === 'comment-form') {
       console.log("Posting comment");

@@ -1,0 +1,4 @@
+1. AI Tool used: ChatGPT
+2. Asked big picture questions mainly about jest and infinite scrolling.
+https://chatgpt.com/share/68145a28-da0c-8002-8f56-cedf095d3b32 
+3. Helpful in terms of resolving a very specific bug where I couldn't figure out how to differentiate whether the program was being ran in the app or by jest, and didn't know how to easily search it up. Accuracy wise I would say it was fairly accurate. 
