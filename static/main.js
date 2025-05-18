@@ -129,12 +129,15 @@ export async function loadComments(articleId) {
   try {
     let response = await fetch(`/get_comments/${encodeURIComponent(articleId)}`);
     let comments = await response.json();
-    console.log("Fetched comments:", comments);
-
+    
     if (!Array.isArray(comments)) {
       console.error("Unexpected comments format:", comments);
       comments = [];
     }
+    
+    const commentHeader = document.querySelector('.comments-header h3');
+    commentHeader.textContent = `Comments ${comments.length}`;
+    
     document.getElementById('comments-list').innerHTML = renderComments(comments);
   } catch (error) {
     console.error("Error loading comments:", error);
@@ -366,74 +369,6 @@ function initializeEventListeners() {
     }
   });
 }
-
-// Keeping the original commented-out form event listener
-// document.getElementById('comment-form').addEventListener('submit', async function(event) {
-//   console.log("posting comment")
-//   event.preventDefault();
-//   const formData = new FormData(this);
-//   const articleId = event.submitter.dataset.articleId;
-//   const data = {
-//     article_id: formData.get('article_id'), // from 
-//     text: formData.get('text'),
-//     username: formData.get('username'),
-//   };
-//   const response = await fetch('/post_comments', {
-//     method: 'POST',
-//     headers: {
-//     'Content-Type': 'application/json'
-//     },
-//     body: JSON.stringify(data)
-//   });
-//   const result = await response.json();
-//   loadComments(formData.get('article_id'));
-// });
-
-// Keeping the original commented-out sections
-// document.addEventListener('click', async function(e){ 
-//   // Find the closest comment button (handles clicks on child elements)
-//   const commentButton = e.target.closest('.comment-button');
-//   
-//   if(commentButton && ['moderator', 'user', 'admin'].includes(window.user_name)){
-//     console.log(window.user_name);
-//     currentArticleId = commentButton.dataset.articleId;
-//     document.getElementById('comments-sidebar').style.display = 'block';
-//     document.getElementById('sidebar-overlay').classList.add('active');
-//     loadComments(currentArticleId);
-//   }
-//   else if(!['moderator', 'user', 'admin'].includes(window.user_name)){
-//     // Only redirect to login if we actually clicked a comment button
-//     if(commentButton) {
-//       window.location.href = '/login';
-//     }
-//   }
-//   
-//   if(e.target.id === 'close-sidebar'){
-//     document.getElementById('comments-sidebar').style.display = 'none';
-//     document.getElementById('sidebar-overlay').classList.remove('active');
-//   }
-//   // Keeping this commented out as it was problematic
-//   // if(e.target.id === ""){ // FIX THIS PART 
-//   //   console.log("posting comment")
-//   //   e.preventDefault();
-//   //   const formData = new FormData(this);
-//   //   const articleId = e.submitter.dataset.articleId;
-//   //   const data = {
-//   //     article_id: formData.get('article_id'), // from 
-//   //     text: formData.get('text'),
-//   //     username: formData.get('username'),
-//   //   };
-//   //   const response = await fetch('/post_comments', {
-//   //     method: 'POST',
-//   //     headers: {
-//   //       'Content-Type': 'application/json'
-//   //     },
-//   //     body: JSON.stringify(data)
-//   //   });
-//   //   const result = await response.json();
-//   //   loadComments(formData.get('article_id'));
-//   // }
-// });
 
 const isJest = typeof process !== 'undefined' && process.env.JEST_WORKER_ID !== undefined; // checks if ran by jest or in app
 
