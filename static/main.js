@@ -190,6 +190,7 @@ function renderComments(comments) {
       </div>
       <div class="comment-text">${comment.text}</div>
       <button class="reply-btn" data-id="${comment._id}">Reply</button>
+      ${window.user_name === 'moderator' ? `<button class="delete-btn" data-id="${comment._id}">Delete</button>` : ''}
     </div>`
   ).join('');
 }
@@ -209,6 +210,22 @@ document.addEventListener('click', function(event) {
     form.dataset.parentId = event.target.dataset.id;
 
     event.target.parentNode.appendChild(form);
+  }
+});
+
+document.addEventListener('click', async function(event) {
+  if (event.target.classList.contains('delete-btn')) {
+    // console.log(event.target.parentNode)
+    const commentId = event.target.dataset.id;
+    const response = await fetch(`/delete_comment/${commentId}`, {method:'DELETE'});
+    const result = await response.json();
+    if (result.success) {
+        // Remove the comment from the DOM
+        event.target.closest('.comment').remove();
+      } 
+    else {
+      alert(result.message || 'Failed to delete comment.');
+    }
   }
 });
 
