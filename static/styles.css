@@ -40,6 +40,23 @@ header{
 /* makes the spacing even */
 #title-bar > div:last-child {
     flex: 1;
+    text-align: right;
+}
+
+#login-button, #logout-button {
+    background-color: #326891;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 3px;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#login-button:hover, #logout-button:hover {
+    background-color: #2a5a80;
 }
 
 nav{
@@ -88,8 +105,10 @@ nav{
 }
 
 /* 14px so that the 16px from p matches the 30px */
-.left-column > article{
+article{
     padding: 0px 0px 14px 0px;
+    border-bottom: 1px solid #bbb;
+    min-height: 300px;
 }
 
 .right-column{
@@ -101,14 +120,29 @@ nav{
     padding: 0px 0px 0px 30px;
 }
 
-.right-column > article{
-    padding: 0px 0px 14px 0px;
-    margin: 0px 0px 0px 0px;
+/* Comment button styling */
+.comment-button {
+    background-color: white;
+    border: 1px solid #d0d0d0;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    cursor: pointer;
+    text-decoration: none;
+    margin-left: auto
 }
 
-article{
-    border-bottom: 1px solid #bbb;
-    min-height: 300px;
+.comment-button:hover {
+    background-color: #e8e8e8;
+}
+
+.comment-count {
+    color: black;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 12px;
+    min-width: 16px;
+    text-align: center;
 }
 
 #comments-sidebar {
@@ -119,6 +153,25 @@ article{
     left: 0;
     width: 25vw;
     height: 100vh;
+    border-right: 1px solid #ccc;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#close-sidebar {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+#close-sidebar:hover {
+    color: #000;
 }
 
 /* for tablets */

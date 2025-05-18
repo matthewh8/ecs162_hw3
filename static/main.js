@@ -67,11 +67,24 @@ export async function fetchArticles(){ // queries NYT API for 6 articles, then c
   return articles.slice(0, 6);
 }
 
-export function displayArticles(articles){ // displays articles by putting them into html
+// Get comment count for an article
+async function getCommentCount(articleId) {
+    try {
+        const response = await fetch(`/get_comments/${encodeURIComponent(articleId)}`);
+        const comments = await response.json();
+        return Array.isArray(comments) ? comments.length : 0;
+    } catch (error) {
+        console.error('Error getting comment count:', error);
+        return 0;
+    }
+}
+
+export async function displayArticles(articles){ // displays articles by putting them into html
   const leftColumn = document.querySelector('.left-column');
   const mainColumn = document.querySelector('.main-column');
   const rightColumn = document.querySelector('.right-column');
   const columns = [leftColumn, mainColumn, rightColumn];
+  
   for(let i = 0; i < 6; i++){
     let article = articles[i];
     let articleWrapper = document.createElement('article'); //create article element wrapping headline/abstract
@@ -85,10 +98,15 @@ export function displayArticles(articles){ // displays articles by putting them 
     img.src = article.multimedia.default.url;
     img.classList.add('article-img');
     articleWrapper.appendChild(img);
+    
     let commentButton = document.createElement('button');
-    commentButton.textContent = 'Comment';
     commentButton.classList.add('comment-button');
     commentButton.dataset.articleId = article._id;
+    
+    // displaying comment count on button
+    const commentCount = await getCommentCount(article._id);
+    commentButton.innerHTML = `<span class="comment-count">${commentCount}</span>`;
+    
     console.log(commentButton.dataset.articleId);
     commentButton.addEventListener('click', () => {
       document.getElementById('article-id').value = commentButton.dataset.articleId;
@@ -98,6 +116,7 @@ export function displayArticles(articles){ // displays articles by putting them 
     columns[i%3].appendChild(articleWrapper); //append wrapper containing everything to parent element column
   }
 }
+
 const loginBtn = document.getElementById('login-button');
 if(loginBtn){
   document.getElementById('login-button').addEventListener('click', () => {
@@ -150,6 +169,18 @@ document.addEventListener('click', async function(e){ // waits for click on the 
   // }
 });
 
+// Update comment count after posting
+async function updateCommentCount(articleId) {
+    const commentButtons = document.querySelectorAll('.comment-button');
+    for (const button of commentButtons) {
+        if (button.dataset.articleId === articleId) {
+            const commentCount = await getCommentCount(articleId);
+            button.innerHTML = `Comment <span class="comment-count">${commentCount}</span>`;
+            break;
+        }
+    }
+}
+
 // New comment form event listener
 document.getElementById('comment-form').addEventListener('submit', async function(e) {
   console.log("Posting comment");
@@ -178,6 +209,9 @@ document.getElementById('comment-form').addEventListener('submit', async functio
   const result = await response.json();
   document.getElementById('comment-input').value = ''; // Clear input field
   loadComments(articleId);
+  
+  // Update comment count in the button
+  await updateCommentCount(articleId);
 });
 
 async function loadComments(articleId) {
@@ -245,6 +279,9 @@ document.addEventListener('click', async function(event) {
     const result = await response.json();
     if (!result.success) {alert(result.message || 'Failed to delete comment.');} 
     loadComments(articleId);
+    
+    // Update comment count after deletion
+    await updateCommentCount(articleId);
   }
 });
 
@@ -275,6 +312,9 @@ document.addEventListener('submit', async function(e) {
     });
     const result = await response.json();
     loadComments(articleId);
+    
+    // Update comment count after reply
+    await updateCommentCount(articleId);
   }
 });
 
@@ -293,7 +333,7 @@ document.addEventListener('submit', async function(e) {
 //   const response = await fetch('/post_comments', {
 //     method: 'POST',
 //     headers: {
-//       'Content-Type': 'application/json'
+//     'Content-Type': 'application/json'
 //     },
 //     body: JSON.stringify(data)
 //   });
