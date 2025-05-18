@@ -106,7 +106,9 @@ test('footer', () => {
 });
 });
 
-import * as articleFunction from './main.js';
+// import * as articleFunction from './main.js';
+
+import { fetchApiKey } from './main.js';
 
 test('fetch API key', async () => { 
 global.fetch = jest.fn().mockImplementation(async() => ({
@@ -114,18 +116,24 @@ global.fetch = jest.fn().mockImplementation(async() => ({
       return {apiKey:'test-key'};
   }
   }));
-const result = await articleFunction.fetchApiKey();
+const result = await fetchApiKey();
 expect(result).toBe('test-key');
 });
 
+jest.mock('node-fetch');
 const fetch = require('node-fetch');
+fetch.mockResolvedValue({
+  json: () => Promise.resolve({ success: true })
+});
 
 describe('API content return test', () => {
+  jest.unmock('node-fetch');
+  const realfetch = require('node-fetch');
   const apiKey = 'S0ECqx43sCfs5GT5P5ZLjzttySP8sVtN';
   const query = 'sacramento';
   const url = `https://api.nytimes.com/svc/search/v2/articlesearch.json?q=${query}&api-key=${apiKey}`;
   test('returned data in expected format', async () => {
-      const response = await fetch(url);
+      const response = await realfetch(url);
       const data = await response.json();
       const returned = data.response.docs[0];
       expect(returned).toHaveProperty('headline');
@@ -246,21 +254,222 @@ describe('Media Query Column Width Tests', () => {
 });
 
 describe('login button test', () => {
+  let href;
+
   beforeEach(() => {
-      document.body.innerHTML = `<button id="loginBtn">Login</button>`;
-      const loginBtn = document.getElementById('loginBtn');
-      loginBtn.addEventListener('click', () => {
-        window.location.href = '/login';
-      });
+    document.body.innerHTML = `<button id="loginBtn">Login</button>`;
+    href = '';
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: { get href() { return href; }, set href(val) { href = val; } }
     });
+    const loginBtn = document.getElementById('loginBtn');
+    loginBtn.addEventListener('click', () => {
+      window.location.href = '/login';
+    });
+  });
 
   test('redirecting to /login when clicked', () => {
-    window.location = {href: ''};
     const loginBtn = document.getElementById('loginBtn');
     loginBtn.click();
     expect(window.location.href).toBe('/login');
   });
 });
 
+describe('logout button test', () => {
+  let href;
 
+  beforeEach(() => {
+    document.body.innerHTML = `<button id="logout-button-sidebar">Logout</button>`;
+    href = '';
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        get href() { return href; },
+        set href(val) { href = val; }
+      }
+    });
+    const logoutBtn = document.getElementById('logout-button-sidebar');
+    logoutBtn.addEventListener('click', () => {
+      window.location.href = '/logout';
+    });
+  });
+
+  test('redirecting to /logout when clicked', () => {
+    const logoutBtn = document.getElementById('logout-button-sidebar');
+    logoutBtn.click();
+    expect(window.location.href).toBe('/logout');
+  });
+})
+
+import { loadComments } from './main.js';
+
+test('get comments', async () => {
+  document.body.innerHTML = '<div id="comments-list"></div>';
+  window.fetch = jest.fn(() => Promise.resolve({ json: () => Promise.resolve([]) }));
+  window.renderComments = jest.fn(() => '');
+
+  await loadComments('abc');
+  expect(window.fetch).toHaveBeenCalledWith('/get_comments/abc');
+});
+
+test('sidebar click logic', () => {
+  document.body.innerHTML = `
+    <button class="comment-button" data-article-id="1"></button>
+    <div id="comments-sidebar" style="display: none"></div>
+    <div id="sidebar-overlay"></div>
+  `;
+  document.addEventListener('click', function handler(e) {
+    if (e.target.classList.contains('comment-button')) {
+      document.getElementById('comments-sidebar').style.display = 'block';
+    }
+  });
+  document.querySelector('.comment-button').click();
+  expect(document.getElementById('comments-sidebar').style.display).toBe('block');
+});
+import { renderComments } from './main.js';
+describe('rendering logic', ()=> {
+  test('rendering logic empty array', () => {
+    expect(renderComments([])).toContain('No comments yet');
+  });
+
+  test('rendering logic with users', () => {
+    window.user_name = 'user';
+    const comments = [{
+      _id: '1',
+      text: 'Hello!',
+      username: 'David',
+      parent_id: null,
+      timestamp: 1
+    }];
+    const html = renderComments(comments);
+    expect(html).toContain('David');
+    expect(html).toContain('Hello!');
+    expect(html).toContain('reply-btn');
+  });
+});
+
+describe('Account sidebar tests', () => {
+  let accountButton, accountSidebar, sidebarOverlay, closeAccountSidebar, commentsSidebar;
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <button id="account-btn"></button>
+      <div id="account-sidebar" style="display: none"></div>
+      <div id="sidebar-overlay"></div>
+      <button id="close-account-sidebar"></button>
+      <div id="comments-sidebar" style="display: none"></div>
+    `;
+
+    accountButton = document.getElementById('account-btn');
+    accountSidebar = document.getElementById('account-sidebar');
+    sidebarOverlay = document.getElementById('sidebar-overlay');
+    closeAccountSidebar = document.getElementById('close-account-sidebar');
+
+    if (accountButton) {
+      accountButton.addEventListener('click', function() {
+        accountSidebar.style.display = 'block';
+        sidebarOverlay.classList.add('active');
+      });
+    }
+
+    if (closeAccountSidebar) {
+      closeAccountSidebar.addEventListener('click', function() {
+        accountSidebar.style.display = 'none';
+        sidebarOverlay.classList.remove('active');
+      });
+    }
+
+    if (sidebarOverlay) {
+      sidebarOverlay.addEventListener('click', function() {
+        accountSidebar.style.display = 'none';
+        sidebarOverlay.classList.remove('active');
+      });
+    }
+  });
+
+  test('open account sidebar', () => {
+    accountButton.click();
+    expect(accountSidebar.style.display).toBe('block');
+    expect(sidebarOverlay.classList.contains('active')).toBe(true);
+  });
+
+  test('close account sidebar', () => {
+    accountButton.click();
+    closeAccountSidebar.click();
+    expect(accountSidebar.style.display).toBe('none');
+    expect(sidebarOverlay.classList.contains('active')).toBe(false);
+  });
+
+  test('close both sidebars and overlay', () => {
+    accountSidebar.style.display = 'block';
+    sidebarOverlay.classList.add('active');
+    sidebarOverlay.click();
+    expect(accountSidebar.style.display).toBe('none');
+    expect(sidebarOverlay.classList.contains('active')).toBe(false);
+  });
+});
+
+// test('deletes comment and reloads when delete button is clicked', async () => {
+//   document.body.innerHTML = `
+//     <input id="article-id" value="1">
+//     <button class="delete-btn" data-id="2"></button>
+//   `;
+
+//   window.fetch = jest.fn(() =>
+//     Promise.resolve({ json: () => Promise.resolve({ success: true }) })
+//   );
+
+//   global.loadComments = jest.fn();
+//   global.updateCommentCount = jest.fn();
+//   const deleteBtn = document.querySelector('.delete-btn');
+//   deleteBtn.click();
+//   await Promise.resolve();
+  
+//   expect(fetch).toHaveBeenCalledWith('/delete_comment/2', {
+//     method: 'DELETE'
+//   });
+//   expect(loadComments).toHaveBeenCalledWith('1');
+//   expect(updateCommentCount).toHaveBeenCalledWith('1');
+// });
+
+import { updateCommentCount } from './main.js';
+
+test('deletes comment and reloads when delete button is clicked', async () => {
+  document.body.innerHTML = `
+    <input id="article-id" value="1">
+    <button class="delete-btn" data-id="2"></button>
+    <div id="comments-list"></div>
+  `;
+  global.fetch = jest.fn(() => 
+    Promise.resolve({ 
+      json: () => Promise.resolve({ success: true }) 
+    })
+  );
+  document.addEventListener('click', async (event) => {
+    if (event.target.classList.contains('delete-btn')) {
+      const commentId = event.target.dataset.id;
+      const articleId = document.getElementById('article-id').value;
+      await fetch(`http://localhost/delete_comment/${commentId}`, { 
+        method: 'DELETE' 
+      });
+      loadComments(articleId);
+      await updateCommentCount(articleId);
+    }
+  });
+
+  // 4. Simulate click
+  const deleteBtn = document.querySelector('.delete-btn');
+  deleteBtn.click();
+
+  // 5. Wait for async operations
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  // 6. Assert
+  expect(global.fetch).toHaveBeenCalledWith(
+    'http://localhost/delete_comment/2',
+    { method: 'DELETE' }
+  );
+  expect(loadComments).toHaveBeenCalledWith('1');
+  expect(updateCommentCount).toHaveBeenCalledWith('1');
+});
 

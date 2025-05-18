@@ -68,7 +68,7 @@ export async function fetchArticles(){ // queries NYT API for 6 articles, then c
 }
 
 // Get comment count for an article
-async function getCommentCount(articleId) {
+export async function getCommentCount(articleId) {
     try {
         const response = await fetch(`/get_comments/${encodeURIComponent(articleId)}`);
         const comments = await response.json();
@@ -117,62 +117,35 @@ export async function displayArticles(articles){ // displays articles by putting
   }
 }
 
-const loginBtn = document.getElementById('login-button');
+const loginBtn = document.getElementById('login-button'); // COVERED
 if(loginBtn){
   document.getElementById('login-button').addEventListener('click', () => {
     window.location.href = '/login';
   })
 }
 
-const logoutBtn = document.getElementById('logout-button');
-if(logoutBtn){
-    document.getElementById('logout-button').addEventListener('click', () => {
-    window.location.href = '/logout';
-  })
-}
-
 let currentArticleId = null;
-
-document.addEventListener('click', async function(e){ 
-  console.log(window.user_name);
-  if(e.target.classList.contains('comment-button') && ['moderator', 'user', 'admin'].includes(window.user_name)){
-    currentArticleId = e.target.dataset.articleId;
-    document.getElementById('comments-sidebar').style.display = 'block';
-    document.getElementById('sidebar-overlay').classList.add('active'); // Add overlay
-    loadComments(currentArticleId);
-  }
-  else if(!['moderator', 'user', 'admin'].includes(window.user_name)){
-    window.location.href = '/login';
-  }
-  if(e.target.id === 'close-sidebar'){
-    document.getElementById('comments-sidebar').style.display = 'none';
-    document.getElementById('sidebar-overlay').classList.remove('active'); // Remove overlay
-  }
-  // Keeping this commented out as it was problematic
-  // if(e.target.id === ""){ // FIX THIS PART 
-  //   console.log("posting comment")
-  //   e.preventDefault();
-  //   const formData = new FormData(this);
-  //   const articleId = e.submitter.dataset.articleId;
-  //   const data = {
-  //     article_id: formData.get('article_id'), // from 
-  //     text: formData.get('text'),
-  //     username: formData.get('username'),
-  //   };
-  //   const response = await fetch('/post_comments', {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json'
-  //     },
-  //     body: JSON.stringify(data)
-  //   });
-  //   const result = await response.json();
-  //   loadComments(formData.get('article_id'));
-  // }
+document.addEventListener('DOMContentLoaded', function() { // COVERED
+  document.addEventListener('click', async function(e){ 
+    console.log(window.user_name);
+    if(e.target.classList.contains('comment-button') && ['moderator', 'user', 'admin'].includes(window.user_name)){
+      currentArticleId = e.target.dataset.articleId;
+      document.getElementById('comments-sidebar').style.display = 'block';
+      document.getElementById('sidebar-overlay').classList.add('active'); // Add overlay
+      loadComments(currentArticleId);
+    }
+    else if(e.target.classList.contains('comment-button') && !['moderator', 'user', 'admin'].includes(window.user_name)){
+      window.location.href = '/login';
+    }
+    if(e.target.id === 'close-sidebar'){
+      document.getElementById('comments-sidebar').style.display = 'none';
+      document.getElementById('sidebar-overlay').classList.remove('active'); // Remove overlay
+    }
+  });
 });
 
 // Update comment count after posting
-export async function updateCommentCount(articleId) {
+export async function updateCommentCount(articleId) { 
     const commentButtons = document.querySelectorAll('.comment-button');
     for (const button of commentButtons) {
         if (button.dataset.articleId === articleId) {
@@ -185,7 +158,7 @@ export async function updateCommentCount(articleId) {
 
 // New comment form event listener
 document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('comment-form').addEventListener('submit', async function(e) {
+  document.getElementById('comment-form').addEventListener('submit', async function(e) { // NEED TEST FOR THIS
     console.log("Posting comment");
     e.preventDefault();
     
@@ -218,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-export async function loadComments(articleId) {
+export async function loadComments(articleId) { // COVERED
   console.log("Loading comments for article:", articleId);
   try {
     let response = await fetch(`/get_comments/${encodeURIComponent(articleId)}`);
@@ -300,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() { // NEED TO COVER
   document.addEventListener('submit', async function(e) {
     if (e.target.classList.contains('reply-form')) {
       e.preventDefault();
@@ -335,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() { // COVERED
   const accountButton = document.getElementById('account-button');
   const accountSidebar = document.getElementById('account-sidebar');
   const closeAccountSidebar = document.getElementById('close-account-sidebar');
@@ -365,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
 
-  if (logoutButtonSidebar) {
+  if (logoutButtonSidebar) { // COVERED
       logoutButtonSidebar.addEventListener('click', function() {
           window.location.href = '/logout';
       });
