@@ -9,6 +9,14 @@ db.users.find().count() === 0 && db.users.insertOne({
     userID: '123'
 });
 
+db.createCollection('articles');
+db.articles.find().count() === 0 && db.articles.insertOne({
+    article_id: 'fd651085-1294-5a5c-81d3-a2dd66f6fafe',  // via NYT API
+    title: 'Sample NYT Article Title',
+    content: 'This is the full article content text...',
+    image_url: 'https://example.com/image.jpg'
+});
+
 db.createCollection('comments');
 db.comments.find().count() === 0 && db.comments.insertOne({
     comment_id: '1',

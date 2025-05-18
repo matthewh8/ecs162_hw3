@@ -25,28 +25,46 @@ export async function fetchApiKey(){ // utilizes Flask backend to fetch api key 
 let page = 0;
 
 export async function fetchArticles(){ // queries NYT API for 6 articles, then calls display function
-    const apiKey = await fetchApiKey();
-    const query = 'sacramento'; // we chose just sacramento because davis didn't have anything
-    let articles = [];
-    while(articles.length < 6){
+  const apiKey = await fetchApiKey();
+  const query = 'sacramento'; // we chose just sacramento because davis didn't have anything
+  let articles = [];
+  
+  while(articles.length < 6){
       const url = `https://api.nytimes.com/svc/search/v2/articlesearch.json?q=${query}&page=${page}&api-key=${apiKey}`;
       console.log(url);
       const response = await fetch(url);
       const data = await response.json();
       const returned = data.response.docs;
+      
       for(const doc of returned){
-        const keywords = doc.keywords;
-        for(const keyword of keywords){
-          if(keyword.name.includes('Location') && (keyword.value.includes('Sacramento') || (keyword.value.includes('Davis')))){
-            articles.push(doc);
-            break;
+          const keywords = doc.keywords;
+          for(const keyword of keywords){
+              if(keyword.name.includes('Location') && (keyword.value.includes('Sacramento') || (keyword.value.includes('Davis')))){
+                  articles.push(doc);
+                  break;
+              }
           }
-        }
       }
       page++;
-    }
-    displayArticles(articles.slice(0, 6));
-    return articles.slice(0, 6);
+  }
+  
+  //saves articles to article db
+  try {
+      const saveResponse = await fetch('/save_articles', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ articles: articles.slice(0, 6) })
+      });
+      const saveResult = await saveResponse.json();
+      console.log(`Saved ${saveResult.saved_count} new articles to database`);
+  } catch (error) {
+      console.error('Error saving articles:', error);
+  }
+  
+  displayArticles(articles.slice(0, 6));
+  return articles.slice(0, 6);
 }
 
 export function displayArticles(articles){ // displays articles by putting them into html
