@@ -245,8 +245,22 @@ describe('Media Query Column Width Tests', () => {
   });
 });
 
+describe('login button test', () => {
+  beforeEach(() => {
+      document.body.innerHTML = `<button id="loginBtn">Login</button>`;
+      const loginBtn = document.getElementById('loginBtn');
+      loginBtn.addEventListener('click', () => {
+        window.location.href = '/login';
+      });
+    });
 
-
+  test('redirecting to /login when clicked', () => {
+    window.location = {href: ''};
+    const loginBtn = document.getElementById('loginBtn');
+    loginBtn.click();
+    expect(window.location.href).toBe('/login');
+  });
+});
 
 
 

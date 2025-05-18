@@ -145,7 +145,7 @@ article{
     text-align: center;
 }
 
-/* Update the comments sidebar to match account sidebar styling */
+/* comments sidebar to match account sidebar styling */
 #comments-sidebar {
     display: none;
     position: fixed;
@@ -390,8 +390,6 @@ article{
         text-align: center;
     }
 }
-
-/* Add these styles to your existing CSS file */
 
 /* Account dropdown styles */
 .account-dropdown {

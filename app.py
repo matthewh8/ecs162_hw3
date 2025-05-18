@@ -74,11 +74,10 @@ def save_articles():
     
     saved_articles = []
     for article_data in articles_data:
-        # Extract the fields you need from NYT API response
         article = {
-            "article_id": article_data.get('_id'),  # NYT's unique ID
+            "article_id": article_data.get('_id'), 
             "title": article_data.get('headline', {}).get('main', ''),
-            "content": article_data.get('abstract', ''),  # or use lead_paragraph
+            "content": article_data.get('abstract', ''),
             "image_url": article_data.get('multimedia', {}).get('default', {}).get('url', '') if article_data.get('multimedia') else '',
             "created_at": datetime.utcnow()
         }
@@ -104,8 +103,6 @@ def post_comment():
     data = request.json
     print("Received comment data:", data)
     
-    # In a real app, you'd get user info from the session
-    # For demo purposes, use the username from the request or a default
     username = data.get('username', 'anonymous')
     
     comment = {

@@ -172,7 +172,7 @@ document.addEventListener('click', async function(e){
 });
 
 // Update comment count after posting
-async function updateCommentCount(articleId) {
+export async function updateCommentCount(articleId) {
     const commentButtons = document.querySelectorAll('.comment-button');
     for (const button of commentButtons) {
         if (button.dataset.articleId === articleId) {
@@ -184,39 +184,41 @@ async function updateCommentCount(articleId) {
 }
 
 // New comment form event listener
-document.getElementById('comment-form').addEventListener('submit', async function(e) {
-  console.log("Posting comment");
-  e.preventDefault();
-  
-  const articleId = document.getElementById('article-id').value;
-  const commentText = document.getElementById('comment-input').value;
-  const username = "user"; 
-  
-  const data = {
-    article_id: articleId,
-    text: commentText,
-    username: username,
-    parent_id: null
-  };
-  
-  console.log("Submitting comment data:", data);
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('comment-form').addEventListener('submit', async function(e) {
+    console.log("Posting comment");
+    e.preventDefault();
+    
+    const articleId = document.getElementById('article-id').value;
+    const commentText = document.getElementById('comment-input').value;
+    const username = "user"; 
+    
+    const data = {
+      article_id: articleId,
+      text: commentText,
+      username: username,
+      parent_id: null
+    };
+    
+    console.log("Submitting comment data:", data);
 
-  const response = await fetch('/post_comments', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
+    const response = await fetch('/post_comments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    document.getElementById('comment-input').value = ''; // Clear input field
+    loadComments(articleId);
+    
+    // Update comment count in the button
+    await updateCommentCount(articleId);
   });
-  const result = await response.json();
-  document.getElementById('comment-input').value = ''; // Clear input field
-  loadComments(articleId);
-  
-  // Update comment count in the button
-  await updateCommentCount(articleId);
 });
 
-async function loadComments(articleId) {
+export async function loadComments(articleId) {
   console.log("Loading comments for article:", articleId);
   try {
     let response = await fetch(`/get_comments/${encodeURIComponent(articleId)}`);
@@ -234,7 +236,7 @@ async function loadComments(articleId) {
   }
 }
 
-function renderComments(comments) {
+export function renderComments(comments) {
   console.log("Rendering comments");
   if (!comments || comments.length === 0) {
     return "<p>No comments yet. Be the first to comment!</p>";
@@ -260,71 +262,77 @@ function renderComments(comments) {
   }).join('');
 }
 
-document.addEventListener('click', function(event) {
-  if (event.target.classList.contains('reply-btn')) {
-    // console.log(event.target.parentNode)
-    const existingForm = document.querySelector('.reply-form');
-    if (existingForm) existingForm.remove();
-    const form = document.createElement('form');
-    form.className = 'reply-form';
-    form.innerHTML = `
-      <textarea name="reply" required></textarea>
-      <button type="submit">Post Reply</button>
-    `;
-    console.log(event.target.dataset.id); // event.target.dataset.id gets correct parent comment id
-    form.dataset.parentId = event.target.dataset.id;
+document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('reply-btn')) {
+      // console.log(event.target.parentNode)
+      const existingForm = document.querySelector('.reply-form');
+      if (existingForm) existingForm.remove();
+      const form = document.createElement('form');
+      form.className = 'reply-form';
+      form.innerHTML = `
+        <textarea name="reply" required></textarea>
+        <button type="submit">Post Reply</button>
+      `;
+      console.log(event.target.dataset.id); // event.target.dataset.id gets correct parent comment id
+      form.dataset.parentId = event.target.dataset.id;
 
-    event.target.parentNode.appendChild(form);
-  }
+      event.target.parentNode.appendChild(form);
+    }
+  });
 });
 
-document.addEventListener('click', async function(event) {
-  const articleId = document.getElementById('article-id').value;
-  console.log(articleId);
-  if (event.target.classList.contains('delete-btn')) {
-    // console.log(event.target.parentNode)
-    const commentId = event.target.dataset.id;
-    const response = await fetch(`/delete_comment/${commentId}`, {method:'DELETE'});
-    const result = await response.json();
-    if (!result.success) {alert(result.message || 'Failed to delete comment.');} 
-    loadComments(articleId);
-    
-    // Update comment count after deletion
-    await updateCommentCount(articleId);
-  }
-});
-
-document.addEventListener('submit', async function(e) {
-  if (e.target.classList.contains('reply-form')) {
-    e.preventDefault();
-    const replyText = e.target.querySelector('textarea').value;
-    console.log(replyText);
-    const parentId = e.target.dataset.parentId;
-    console.log(parentId);
+document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('click', async function(event) {
     const articleId = document.getElementById('article-id').value;
     console.log(articleId);
-    const username = "user";
+    if (event.target.classList.contains('delete-btn')) {
+      // console.log(event.target.parentNode)
+      const commentId = event.target.dataset.id;
+      const response = await fetch(`/delete_comment/${commentId}`, {method:'DELETE'});
+      const result = await response.json();
+      if (!result.success) {alert(result.message || 'Failed to delete comment.');} 
+      loadComments(articleId);
+      
+      // Update comment count after deletion
+      await updateCommentCount(articleId);
+    }
+  });
+});
 
-    const data = {
-      article_id: articleId,
-      text: replyText,
-      username: username,
-      parent_id: parentId
-    };
+document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('submit', async function(e) {
+    if (e.target.classList.contains('reply-form')) {
+      e.preventDefault();
+      const replyText = e.target.querySelector('textarea').value;
+      console.log(replyText);
+      const parentId = e.target.dataset.parentId;
+      console.log(parentId);
+      const articleId = document.getElementById('article-id').value;
+      console.log(articleId);
+      const username = "user";
 
-    const response = await fetch('/post_comments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-    const result = await response.json();
-    loadComments(articleId);
-    
-    // Update comment count after reply
-    await updateCommentCount(articleId);
-  }
+      const data = {
+        article_id: articleId,
+        text: replyText,
+        username: username,
+        parent_id: parentId
+      };
+
+      const response = await fetch('/post_comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+      loadComments(articleId);
+      
+      // Update comment count after reply
+      await updateCommentCount(articleId);
+    }
+  });
 });
 
 document.addEventListener('DOMContentLoaded', function() {
