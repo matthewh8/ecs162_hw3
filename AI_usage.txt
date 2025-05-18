@@ -1,4 +1,8 @@
-1. AI Tool used: ChatGPT
-2. Asked big picture questions mainly about jest and infinite scrolling.
-https://chatgpt.com/share/68145a28-da0c-8002-8f56-cedf095d3b32 
-3. Helpful in terms of resolving a very specific bug where I couldn't figure out how to differentiate whether the program was being ran in the app or by jest, and didn't know how to easily search it up. Accuracy wise I would say it was fairly accurate. 
+1. AI Tool used: Claude, Perplexity
+2. 
+Nested comments via parent child mapping https://claude.ai/share/50c211ef-5183-4475-a78f-34053646dbc4
+    Very informative and thorough in the information
+Event Delegation as best practice for organizing multiple events in JS https://claude.ai/share/f0aa2623-814f-4996-806d-ee1861447bd3
+    Accurate and helpful
+PATCH CRUD operation for implementing redacting https://claude.ai/share/d1eb2a82-d18a-4e92-acd5-5cb36800be07
+    Concise and informative
