@@ -154,7 +154,6 @@ export function renderComments(comments) {
     return "<p>No comments yet. Be the first to comment!</p>";
   }
 
-  // Parent and Child relationships for nesting
   const commentMap = new Map();
   const parentComments = [];
   
@@ -431,8 +430,8 @@ function initializeEventListeners() {
         },
         body: JSON.stringify(data)
       });
-      const result = await response.json();
-      document.getElementById('comment-input').value = ''; //clear input after submission
+      await response.json();
+      document.getElementById('comment-input').value = ''; 
       loadComments(articleId);
       await updateCommentCount(articleId);
       return;

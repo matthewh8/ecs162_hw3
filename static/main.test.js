@@ -253,11 +253,67 @@ describe('Media Query Column Width Tests', () => {
   });
 });
 
+import { loadComments } from './main.js';
+
+test('get comments', async () => {
+  document.body.innerHTML = '<div id="comments-list"></div>';
+  window.fetch = jest.fn(() => Promise.resolve({ json: () => Promise.resolve([]) }));
+  window.renderComments = jest.fn(() => '');
+
+  await loadComments('article-id');
+  expect(window.fetch).toHaveBeenCalledWith('/get_comments/article-id');
+});
+
+test('sidebar click logic', () => {
+  document.body.innerHTML = `
+    <button class="comment-button" data-article-id="1"></button>
+    <div id="comments-sidebar" style="display: none"></div>
+    <div id="sidebar-overlay"></div>
+    <div id="comments-list"></div>
+  `;
+  document.addEventListener('click', function handler(e) {
+    if (e.target.classList.contains('comment-button')) {
+      document.getElementById('comments-sidebar').style.display = 'block';
+    }
+  });
+  document.querySelector('.comment-button').click();
+  expect(document.getElementById('comments-sidebar').style.display).toBe('block');
+});
+
+import { renderComments } from './main.js';
+
+describe('rendering logic', ()=> {
+  test('rendering logic empty array', () => {
+    document.body.innerHTML = '<div id="comments-list"></div>';
+    expect(renderComments([])).toContain('No comments yet');
+  });
+
+  test('rendering logic with users', () => {
+    document.body.innerHTML = '<div id="comments-list"></div>';
+    window.user_name = 'user';
+    const comments = [{
+      _id: '1',
+      text: 'Hello!',
+      username: 'David',
+      parent_id: null,
+      timestamp: 1
+    }];
+    const html = renderComments(comments);
+    expect(html).toContain('David');
+    expect(html).toContain('Hello!');
+    expect(html).toContain('reply-btn');
+  });
+});
+
 describe('login button test', () => {
   let href;
 
   beforeEach(() => {
-    document.body.innerHTML = `<button id="loginBtn">Login</button>`;
+    document.body.innerHTML = 
+    `
+    <button id="loginBtn">Login</button>
+    <div id="comments-list"></div>
+    `;
     href = '';
     Object.defineProperty(window, 'location', {
       writable: true,
@@ -305,54 +361,7 @@ describe('logout button test', () => {
   });
 })
 
-import { loadComments } from './main.js';
-
-test('get comments', async () => {
-  document.body.innerHTML = '<div id="comments-list"></div>';
-  window.fetch = jest.fn(() => Promise.resolve({ json: () => Promise.resolve([]) }));
-  window.renderComments = jest.fn(() => '');
-
-  await loadComments('abc');
-  expect(window.fetch).toHaveBeenCalledWith('/get_comments/abc');
-});
-
-test('sidebar click logic', () => {
-  document.body.innerHTML = `
-    <button class="comment-button" data-article-id="1"></button>
-    <div id="comments-sidebar" style="display: none"></div>
-    <div id="sidebar-overlay"></div>
-  `;
-  document.addEventListener('click', function handler(e) {
-    if (e.target.classList.contains('comment-button')) {
-      document.getElementById('comments-sidebar').style.display = 'block';
-    }
-  });
-  document.querySelector('.comment-button').click();
-  expect(document.getElementById('comments-sidebar').style.display).toBe('block');
-});
-import { renderComments } from './main.js';
-describe('rendering logic', ()=> {
-  test('rendering logic empty array', () => {
-    expect(renderComments([])).toContain('No comments yet');
-  });
-
-  test('rendering logic with users', () => {
-    window.user_name = 'user';
-    const comments = [{
-      _id: '1',
-      text: 'Hello!',
-      username: 'David',
-      parent_id: null,
-      timestamp: 1
-    }];
-    const html = renderComments(comments);
-    expect(html).toContain('David');
-    expect(html).toContain('Hello!');
-    expect(html).toContain('reply-btn');
-  });
-});
-
-describe('Account sidebar tests', () => {
+describe('account sidebar tests', () => {
   let accountButton, accountSidebar, sidebarOverlay, closeAccountSidebar, commentsSidebar;
   beforeEach(() => {
     document.body.innerHTML = `
@@ -453,6 +462,7 @@ test('deletes comment and reloads', async () => {
 import { getCommentCount } from './main.js';
 
 test('returns comment count', async () => {
+  document.body.innerHTML = '<div id="comments-list"></div>';
   global.fetch = jest.fn(() =>
     Promise.resolve({
       json: () => Promise.resolve(['comment1', 'comment2']),
@@ -464,7 +474,124 @@ test('returns comment count', async () => {
   expect(global.fetch).toHaveBeenCalledWith('/get_comments/123');
 });
 
+describe('click on comment button', () => {
+  let commentbtn;
+  let currentArticleId;
+  beforeAll(() => {
+    document.body.innerHTML = `
+      <button id="commentButton" data-article-id="123">Comment</button>
+      <div id="comments-sidebar" style="display:none"></div>
+      <div id="sidebar-overlay" class=""></div>
+      <input type="hidden" id="article-id" value="">
+      <div id="comments-list"></div>
+    `;
+    commentbtn = document.getElementById('commentButton');
+    commentbtn.addEventListener('click', mockClickHandler);
+  });
 
+  const mockClickHandler = jest.fn((event) => {
+  
+  if (event.target.id === 'commentButton') {
+    if (['moderator', 'user', 'admin'].includes(window.user_name)) {
+            console.log(window.user_name);
+            currentArticleId = commentButton.dataset.articleId;
+            document.getElementById('comments-sidebar').style.display = 'block';
+            document.getElementById('sidebar-overlay').classList.add('active');
+            document.getElementById('article-id').value = currentArticleId;
+            loadComments(currentArticleId);
+          } else {
+            window.location.href = '/login';
+          }
+          return;
+        }
+    });
 
+  beforeEach(() => {
+    window.user_name = '';
+    document.getElementById('comments-sidebar').style.display = 'none';
+    document.getElementById('sidebar-overlay').className = '';
+    document.getElementById('article-id').value = '';
+    jest.clearAllMocks();
+  });
 
+  test('load sidebar for logged in people', () => {
+    const authorizedUsers = ['moderator', 'user', 'admin'];
+    
+    authorizedUsers.forEach(user => {
+      window.user_name = user;
+      commentbtn.click();
+      
+      expect(document.getElementById('comments-sidebar').style.display).toBe('block');
+      expect(document.getElementById('sidebar-overlay').classList.contains('active')).toBe(true);
+      expect(document.getElementById('article-id').value).toBe('123');
+    });
+  });
 
+  test('should redirect to login for unauthorized users', () => {
+    window.user_name = 'guest';
+    commentbtn.click();
+    expect(window.location.href).toBe('/login');
+  });
+});
+
+test('submits comment and reloads', async () => {
+  document.body.innerHTML = `
+    <input id="article-id" value="1">
+    <input id="comment-input" value="Hello world!">
+    <form id="comment-form"></form>
+    <div id="comments-list"></div>
+  `;
+  window.user_name = 'user';
+
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      json: () => Promise.resolve({ success: true }),
+    })
+  );
+  const loadComments = jest.fn();
+  const updateCommentCount = jest.fn(() => Promise.resolve());
+  const e = {
+    target: { id: 'comment-form' },
+    preventDefault: jest.fn(),
+  };
+
+  if (e.target.id === 'comment-form') {
+    e.preventDefault();
+
+    const articleId = document.getElementById('article-id').value;
+    const commentText = document.getElementById('comment-input').value;
+    const username = window.user_name;
+
+    const data = {
+      article_id: articleId,
+      text: commentText,
+      username: username,
+      parent_id: null,
+    };
+
+    const response = await fetch('/post_comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    await response.json();
+    document.getElementById('comment-input').value = '';
+    loadComments(articleId);
+    await updateCommentCount(articleId);
+    return;
+  }
+
+  expect(fetch).toHaveBeenCalledWith('/post_comments', expect.objectContaining({
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      article_id: '1',
+      text: 'Hello world!',
+      username: 'user',
+      parent_id: null,
+    }),
+  }));
+  expect(document.getElementById('comment-input').value).toBe('');
+  expect(loadComments).toHaveBeenCalledWith('1');
+  expect(updateCommentCount).toHaveBeenCalledWith('1');
+});

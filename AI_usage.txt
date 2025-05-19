@@ -1,4 +1,4 @@
-1. AI Tool used: Claude, Perplexity
+1. AI Tool used: Claude, Perplexity, ChatGPT
 2. 
 Nested comments via parent child mapping https://claude.ai/share/50c211ef-5183-4475-a78f-34053646dbc4
     Very informative and thorough in the information
@@ -6,3 +6,9 @@ Event Delegation as best practice for organizing multiple events in JS https://c
     Accurate and helpful
 PATCH CRUD operation for implementing redacting https://claude.ai/share/d1eb2a82-d18a-4e92-acd5-5cb36800be07
     Concise and informative
+MongoDB connection string, js questions https://www.perplexity.ai/search/assume-that-i-have-a-docker-fi-uSZqeMNyQ3a8j_mZHPlGyw
+    Very helpful, helped me get unstuck
+Fixing Flask/MongoDB connection issues, help with pytest https://chatgpt.com/share/682a6b85-eea4-8002-9ad9-87342159a2ef
+    A little helpful, more confusing than anything, but pytest part was very helpful
+Jest setup, questions about tests, pytest db mocking https://chatgpt.com/share/682a6b85-eea4-8002-9ad9-87342159a2ef
+    A bit repetitive/confusing when it comes to the setup, the rest was pretty helpful
